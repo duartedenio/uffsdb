@@ -271,6 +271,7 @@ int interface() {
             printf("%s=# ", connected.db_name);
         }
 
+        clearGlobalStructs();
         pthread_create(&pth, NULL, (void*)yyparse, &GLOBAL_PARSER);
         pthread_join(pth, NULL);
 
