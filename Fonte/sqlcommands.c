@@ -666,7 +666,7 @@ int validaColsWhere(Lista *tok,column *colunas,int qtdColunas){
       for(int j = 0; !achou && j < qtdColunas; j++)
         achou = (strcmp(str,colunas[j].nomeCampo) == 0);
       if(!achou){
-        printf("The colimn %s does not belong to the table.\n",str);
+        printf("The column %s does not belong to the table.\n",str);
         return 0;
       }
     }
