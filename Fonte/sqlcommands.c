@@ -469,7 +469,7 @@ int finalizaInsert(char *nome, column *c){
           i = 0;
           while (i < strlen(auxC->valorCampo)){
             if(auxC->valorCampo[i] < 48 || auxC->valorCampo[i] > 57){
-              printf("ERROR: column \"%s\" expectet integer.\n", auxC->nomeCampo);
+              printf("ERROR: column \"%s\" expected integer.\n", auxC->nomeCampo);
   				    free(tab); // Libera a memoria da estrutura.
   				    free(tab2); // Libera a memoria da estrutura.
   				    free(auxT); // Libera a memoria da estrutura.
@@ -621,7 +621,7 @@ int validaProj(Lista *proj,column *colunas,int qtdColunas,char *pert){
   for(Nodo *it = proj->prim; it; it = it->prox,k++){
     if(!validar[k]){
       free(validar);
-      printf("A coluna da projecao %s não pertence a tabela.\n",(char *)it->inf);
+      printf("The column from the projection %s does not belong to the table.\n",(char *)it->inf);
       return 0;
     }
   }
@@ -666,7 +666,7 @@ int validaColsWhere(Lista *tok,column *colunas,int qtdColunas){
       for(int j = 0; !achou && j < qtdColunas; j++)
         achou = (strcmp(str,colunas[j].nomeCampo) == 0);
       if(!achou){
-        printf("A coluna %s não pertene a tabela.\n",str);
+        printf("The colimn %s does not belong to the table.\n",str);
         return 0;
       }
     }
@@ -676,7 +676,7 @@ int validaColsWhere(Lista *tok,column *colunas,int qtdColunas){
 
 void printConsulta(Lista *p,Lista *l){
   if(!l->tam){
-    printf("\n 0 Linhas.\n");
+    printf("\n 0 line.\n");
     return;
   }
   //cabecalho
@@ -715,7 +715,7 @@ void printConsulta(Lista *p,Lista *l){
     }
     printf("\n");
   }
-  printf("\n %d Linha%s.\n",l->tam,l->tam == 1 ? "" : "s");
+  printf("\n %d Line%s.\n",l->tam,l->tam == 1 ? "" : "s");
 }
 
 void adcResultado(Lista *resultado,Lista *tupla,char *pertence){
@@ -782,7 +782,7 @@ Lista *op_select(inf_select *select) {
   x--;
   column *pagina = getPage(bufferpoll, esquema, objeto, 0);
   if(!pagina){
-    printf("Tabela vazia.\n");
+    printf("Empty Table.\n");
     free(bufferpoll);
     free(esquema);
     return NULL;
