@@ -214,9 +214,11 @@ operando: sinal VALUE {adcTokenWhere(yylval.strval,9);} | sinal NUMBER {adcToken
         | VALUE {adcTokenWhere(yylval.strval,9);} | NUMBER {adcTokenWhere(yylval.strval,9);}
 
 /* CREATE TABLE */
-create_index: CREATE INDEX ON {setMode(OP_CREATE_INDEX);} table parentesis_open atributo parentesis_close semicolon {
+create_index: CREATE INDEX opt_index_name ON {setMode(OP_CREATE_INDEX);} table parentesis_open atributo parentesis_close semicolon {
     return 0;
 };
+
+opt_index_name: /*optional*/  | OBJECT {setObjName(yytext);}
 
 atributo: OBJECT {setColumnBtreeCreate(yytext);}
 
