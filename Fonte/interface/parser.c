@@ -239,16 +239,19 @@ void clearGlobalStructs() {
     free(GLOBAL_DATA.attribute);
     GLOBAL_DATA.attribute = (int *)malloc(sizeof(int));
 
-    yylex_destroy();
 
     GLOBAL_DATA.N = 0;
 
-    GLOBAL_PARSER.mode              = 0;
-    GLOBAL_PARSER.parentesis        = 0;
-    GLOBAL_PARSER.noerror           = 1;
-    GLOBAL_PARSER.col_count         = 0;
-    GLOBAL_PARSER.val_count         = 0;
-    GLOBAL_PARSER.step              = 0;
+          // Reset do estado do parser
+    GLOBAL_PARSER.mode = 0;
+    GLOBAL_PARSER.parentesis = 0;
+    GLOBAL_PARSER.noerror = 1; // Reseta o estado de erro
+    GLOBAL_PARSER.consoleFlag = 0; // Reseta o flag do console
+    GLOBAL_PARSER.col_count = 0;
+    GLOBAL_PARSER.val_count = 0;
+    GLOBAL_PARSER.step = 0;
+
+    yylex_destroy();
 }
 
 void setMode(char mode) {
@@ -262,36 +265,40 @@ int interface() {
     pthread_create(&pth, NULL, (void*)clearGlobalStructs, NULL);
     pthread_join(pth, NULL);
     Lista *resultado;
-    connect("uffsdb"); // conecta automaticamente no banco padrão
+    connect("uffsdb"); // Conecta automaticamente no banco padrão
     SELECT.tok = SELECT.proj = NULL;
-    while(1){
+
+    while (1) {
+        // Exibe o prompt uma única vez antes de processar o próximo comando
         if (!connected.conn_active) {
             printf(">");
         } else {
             printf("%s=# ", connected.db_name);
         }
 
+        // Processa o comando
         pthread_create(&pth, NULL, (void*)yyparse, &GLOBAL_PARSER);
         pthread_join(pth, NULL);
 
         if (GLOBAL_PARSER.noerror) {
+            // Comando válido
             if (GLOBAL_PARSER.mode != 0) {
                 if (!connected.conn_active) {
                     notConnected();
                 } else {
-                    switch(GLOBAL_PARSER.mode) {
+                    switch (GLOBAL_PARSER.mode) {
                         case OP_INSERT:
                             if (GLOBAL_DATA.N > 0) {
                                 insert(&GLOBAL_DATA);
-                            }
-                            else
+                            } else {
                                 printf("WARNING: Nothing to be inserted. Command ignored.\n");
+                            }
                             break;
                         case OP_SELECT:
                             resultado = op_select(&SELECT);
-                            if(resultado){
-                              printConsulta(SELECT.proj,resultado);
-                              resultado = NULL;
+                            if (resultado) {
+                                printConsulta(SELECT.proj, resultado);
+                                resultado = NULL;
                             }
                             break;
                         case OP_CREATE_TABLE:
@@ -309,63 +316,40 @@ int interface() {
                         case OP_CREATE_INDEX:
                             createIndex(&GLOBAL_DATA);
                             break;
-                        default: break;
+                        default:
+                            printf("ERROR: Unrecognized command.\n");
+                            break;
                     }
-
                 }
             }
         } else {
-            GLOBAL_PARSER.consoleFlag = 1;
-            switch(GLOBAL_PARSER.mode) {
-                case OP_CREATE_DATABASE:
-                case OP_DROP_DATABASE:
-                case OP_CREATE_TABLE:
-                case OP_DROP_TABLE:
-                case OP_SELECT:
-                case OP_INSERT:
-                case OP_CREATE_INDEX:
-                    if (GLOBAL_PARSER.step == 1) {
-                        GLOBAL_PARSER.consoleFlag = 0;
-                        printf("Expected object name.\n");
-                    }
-                break;
-
-                default: break;
-            }
-
-            if (GLOBAL_PARSER.mode == OP_CREATE_TABLE) {
-                if (GLOBAL_PARSER.step == 2) {
-                    printf("Column not specified correctly.\n");
-                    GLOBAL_PARSER.consoleFlag = 0;
-                }
-            } else if (GLOBAL_PARSER.mode == OP_INSERT) {
-                if (GLOBAL_PARSER.step == 2) {
-                    printf("Expected token \"VALUES\" after object name.\n");
-                    GLOBAL_PARSER.consoleFlag = 0;
-                }
-            }
-
+            // Exibe o erro uma única vez
             printf("ERROR: syntax error.\n");
-            GLOBAL_PARSER.noerror = 1;
         }
 
-        if (GLOBAL_PARSER.mode != 0) {
-            pthread_create(&pth, NULL, (void*)clearGlobalStructs, NULL);
-            pthread_join(pth, NULL);
-        }
+        // Limpa as estruturas globais após cada comando
+        pthread_create(&pth, NULL, (void*)clearGlobalStructs, NULL);
+        pthread_join(pth, NULL);
+
+        // Prepara para o próximo comando
+        GLOBAL_PARSER.noerror = 1;  // Reseta o estado de erro
+        GLOBAL_PARSER.consoleFlag = 0; // Prepara para o próximo prompt
     }
+
     return 0;
 }
 
+
+
 void yyerror(char *s, ...) {
-  GLOBAL_PARSER.noerror = 0;
-  /*extern yylineno;
-
-  va_list ap;
-  va_start(ap, s);
-
-  fprintf(stderr, "%d: error: ", yylineno);
-  vfprintf(stderr, s, ap);
-  fprintf(stderr, "\n");
-  */
+    // Exibe o erro apenas se nenhum erro foi processado antes
+    if (GLOBAL_PARSER.noerror) { 
+        GLOBAL_PARSER.noerror = 0;      // Marca que o erro foi processado
+        GLOBAL_PARSER.consoleFlag = 0; // Reseta o prompt para evitar duplicação
+    }
 }
+
+
+
+
+
