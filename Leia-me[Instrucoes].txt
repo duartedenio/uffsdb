@@ -335,6 +335,7 @@ O interpretador reconhece os comandos SQL abaixo:
 Além disso, interpreta os comandos:
 
 	help				// retorna um menu de ajuda
+	notImplemented		// retorna o que ainda não foi implementado
 	\c <NomeBanco> 		// estabelece conexão com o banco de dados <NomeBanco>
 	\l 					// retorna uma lista com os bancos de dados criados no SGBD
 	\d 					// retorna uma lista com as tabelas existentes no banco de dados corrente

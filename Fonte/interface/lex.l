@@ -57,7 +57,7 @@ help							return HELP;
 [)]                     {yylval.strval = yytext; return FECHA_P;};
 [(]                     {yylval.strval = yytext; return ABRE_P;};
 [*]                     {yylval.strval = yytext; return ASTERISCO;};
-([a-zA-Z_]+[0-9_]*)+		{yylval.strval = yytext; return OBJECT;};
+([a-zA-Z_@#$!%&]+[0-9_]*)+ {yylval.strval = yytext; return OBJECT;};
 ([\']([^']|'')*[\'])		{yylval.strval = yytext; return STRING;};
 [0-9]*\.[0-9]*					{yylval.strval = yytext; return VALUE;};
 [0-9]+							    {yylval.strval = yytext; return NUMBER;};

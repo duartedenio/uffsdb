@@ -113,6 +113,7 @@ void help() {
 	printf("Digite:");
 	printf("\t\\c NOME\t\t- Para conectar-se no banco NAME\n");
 	printf("\t\\q\t\t- Para sair do programa\n");
+    printf("\t\\help\t\t- Para ter mais informações sobre o que está implementado\n");
 	printf("----------------- Comandos válidos quando conectado -----------------\n");
 	printf("Digite:");
 	printf("\t\\d\t\t- Para listar as tabelas do banco\n");
@@ -121,19 +122,25 @@ void help() {
 	printf("------------------------------------------------ Sintaxe SQL ------------------------------------------------\n");
 	printf("CREATE DATABASE NOME;\t\t\t\t- Cria um novo banco de dados\n");
 	printf("\nDROP DATABASE NOME;\t\t\t\t- Exclui um banco de dados\n");
-	printf("\nCREATE TABLE NOME (\t\t\t\t- Cria uma nova tabela. Onde 'type' deve\n");
-	printf("\tcolumn1 type [attribute][,\t\t  pertencer à {int, integer, double, varchar(SIZE), char}.\n");
-	printf("\t...][,\t\t\t\t\t  E 'attribute' pode ser 'PRIMARY KEY', caso seja PK,\n");
-	printf("\tcolumnN type [attribute]]\t\t  ou 'REFERENCES NOME(COLUMN)', indicando a tabela\n");
-	printf(");\t\t\t\t\t\t  e a coluna que está referenciando (FK).\n");
-	printf("\nDROP TABLE NOME;\t\t\t\t- Exclui uma tabela do banco de dados\n");
-	printf("\nINSERT INTO NOME [(column1, ..., columnN)]\t- Insere um novo registro na tabela, padrão SQL mas só\n");
-	printf("VALUES (1, 'text value', 1.11);\t\t\t  aceita um conjunto de valores. Se as colunas não forem\n");
-	printf("\t\t\t\t\t\t  especificadas, a quantidade de valores deve\n");
-	printf("\t\t\t\t\t\t  corresponder à quantidade de colunas da tabela.\n");
-	printf("\nSELECT * FROM NOME;\t\t\t\t- Não é a implementação padrão do SELECT mas serve para\n");
-	printf("\t\t\t\t\t\t  imprmir todos os valores de uma tabela\n");
-  printf("\nCREATE INDEX ON tabela (atributo);\t\t- Cria um índice B+ para o atributo especificado.\n");
+	printf("\nCREATE TABLE NOME (\t\t\t\t- O comando CREATE TABLE define uma nova tabela com as seguintes características:\n");
+	printf("\tcolumn1 type [attribute][,\t\t  1. Um tipo de dado especificado por 'type', que pode ser um dos seguintes valores:\n");
+	printf("\t...][,\t\t\t\t\t     {int, integer, double, varchar(SIZE), char}.\n");
+    printf("\tcolumnN type [attribute]]\t\t  2. Um ou mais atributos opcionais, representados por 'attribute', que podem incluir:\n");
+	printf(");\t\t\t\t\t\t     • PRIMARY KEY: Define a coluna como chave primária (PK)\n");
+	printf("\t\t\t\t\t\t     • REFERENCES NOME(COLUMN): Define a coluna como uma chave estrangeira (FK),\n");
+    printf("\t\t\t\t\t\t     especificando a tabela (NOME) e a coluna (COLUMN) que está sendo referenciada.\n");
+    printf("\t\t\t\t\t\t  Não é possível definir restrições de integridade (como not null, unique ou\n");
+	printf("\t\t\t\t\t\t  constraint para pk).\n");
+    printf("\nDROP TABLE NOME;\t\t\t\t- Exclui uma tabela do banco de dados\n");
+	printf("\nINSERT INTO NOME [(column1, ..., columnN)]\t- Insere um novo registro na tabela seguindo o padrão SQL,\n");
+	printf("VALUES (1, 'text value', 1.11);\t\t\t  mas aceita apenas um único conjunto de valores por vez. Caso as\n");
+	printf("\t\t\t\t\t\t  colunas não sejam explicitamente especificadas, o número de valores fornecidos deve\n");
+	printf("\t\t\t\t\t\t  corresponder exatamente ao número de colunas da tabela.\n");
+    printf("\nSELECT * FROM NOME;\t\t\t\t- Essa não é a implementação padrão do comando SELECT, mas permite\n");
+	printf("\t\t\t\t\t\t  exibir todos os valores de uma tabela. No entanto, não é\n");
+    printf("\t\t\t\t\t\t  possível filtrar os dados por uma coluna específica.\n");
+    printf("\nCREATE INDEX ON tabela (atributo);\t\t- Cria um índice B+ para o atributo especificado.\n");
+    printf("\t\t\t\t\t\t  Não é possível fazer DROP deste índice.\n");
 }
 
 void implement() {
@@ -155,6 +162,7 @@ void implement() {
     printf("ALTER TABLE\n");
     printf("DROP INDEX\n");
     printf("NOT NULL\n");
+    printf("UNIQUE\n");
     printf("JOIN\n");
     printf("GROUP BY\n");
     printf("HAVING\n");
