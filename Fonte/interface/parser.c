@@ -345,7 +345,7 @@ int interface() {
                 }
             }
 
-            printf("ERROR: syntax error.\n");
+            if (strlen(GLOBAL_PARSER.error) == 0) printf("ERROR: syntax error.\n");
             GLOBAL_PARSER.noerror = 1;
         }
 
@@ -368,4 +368,8 @@ void yyerror(char *s, ...) {
   vfprintf(stderr, s, ap);
   fprintf(stderr, "\n");
   */
+}
+
+void addError(char *msg) {
+     strncpy(GLOBAL_PARSER.error, msg, sizeof(GLOBAL_PARSER.error) - 1);
 }

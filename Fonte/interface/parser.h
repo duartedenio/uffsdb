@@ -126,3 +126,5 @@ void clearGlobalStructs();
  * dos tokens iniciais.
  */
 void setMode(char mode);
+
+void addError(char *msg);
