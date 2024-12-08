@@ -49,12 +49,12 @@ int yywrap() {
         LIST_TABLES LIST_TABLE  CONNECT     HELP        LIST_DBASES
         CLEAR       CONTR       WHERE       OPERADOR    RELACIONAL
         LOGICO      ASTERISCO   SINAL       FECHA_P     ABRE_P
-        STRING      INDEX       ON;
+        STRING      INDEX       ON          IMPLEMENT;
 %%
 start: insert | select | create_table | create_database | drop_table | drop_database
      | table_attr | list_tables | connection | exit_program | semicolon {GLOBAL_PARSER.consoleFlag = 1; return 0;}
      | help_pls | list_databases | clear | contributors | create_index
-     | qualquer_coisa | /*epsilon*/;
+     | qualquer_coisa | implement| /*epsilon*/;
 
 /*--------------------------------------------------*/
 /**************** GENERAL FUNCTIONS *****************/
@@ -103,6 +103,9 @@ list_databases: LIST_DBASES {
 
 /* HELP */
 help_pls: HELP {help(); GLOBAL_PARSER.consoleFlag = 1; return 0;}
+
+/* IMPLEMENT */
+implement: IMPLEMENT {implement(); GLOBAL_PARSER.consoleFlag = 1; return 0;}
 
 /* CONTRIBUTORS */
 contributors: CONTR {contr(); GLOBAL_PARSER.consoleFlag = 1; return 0;}

@@ -135,6 +135,42 @@ void help() {
 	printf("\t\t\t\t\t\t  imprmir todos os valores de uma tabela\n");
   printf("\nCREATE INDEX ON tabela (atributo);\t\t- Cria um índice B+ para o atributo especificado.\n");
 }
+
+void implement() {
+	printf("\nComandos SQL implementados no UFFSDB\n");
+	printf("----------------------------------------------------\n");
+	printf("CREATE DATABASE\n");
+    printf("CREATE TABLE\n");
+    printf("CREATE INDEX\n");
+	printf("INSERT\n");
+	printf("SELECT\n");
+	printf("DROP DATABASE\n");
+	printf("DROP TABLE\n");
+    printf("Sintaxe dos itens acima podem ser visualizadas através do comando 'help'\n");
+	printf("----------------------------------------------------\n");
+	printf("\nComandos SQL não implementados no UFFSDB\n");
+    printf("----------------------------------------------------\n");
+    printf("DELETE\n");
+    printf("UPDATE\n");
+    printf("ALTER TABLE\n");
+    printf("DROP INDEX\n");
+    printf("NOT NULL\n");
+    printf("JOIN\n");
+    printf("GROUP BY\n");
+    printf("HAVING\n");
+    printf("ORDER BY\n");
+    printf("LIMIT\n");
+    printf("DISTINCT\n");
+    printf("IN\n");
+    printf("EXISTS\n");
+    printf("BETWEEN\n");
+    printf("COUNT\n");
+    printf("MAX/MIN\n");
+    printf("AVG/SUM\n");
+    printf("CREATE VIEW\n");
+    printf("CREATE PROCEDURE\n");
+    printf("Subconsultas\n");
+}
 ////
 int objcmp(char *obj, char *str) {
 	int i;
