@@ -49,7 +49,7 @@ int yywrap() {
         LIST_TABLES LIST_TABLE  CONNECT     HELP        LIST_DBASES
         CLEAR       CONTR       WHERE       OPERADOR    RELACIONAL
         LOGICO      ASTERISCO   SINAL       FECHA_P     ABRE_P
-        STRING      INDEX       ON;
+        STRING      INDEX       ON          UNKNOWN_TYPE;
 %%
 start: insert | select | create_table | create_database | drop_table | drop_database
      | table_attr | list_tables | connection | exit_program | semicolon {GLOBAL_PARSER.consoleFlag = 1; return 0;}
@@ -140,22 +140,33 @@ value: VALUE {setValueInsert(yylval.strval, 'D');}
 
 /* CREATE TABLE */
 create_table: CREATE TABLE {setMode(OP_CREATE_TABLE);} table parentesis_open table_column_attr parentesis_close semicolon {
+    if (strlen(GLOBAL_PARSER.error) > 0) {
+        GLOBAL_PARSER.noerror = 0;
+        printf("ERROR: %s \n", GLOBAL_PARSER.error);
+        return 0;
+    }
+
     GLOBAL_DATA.N = GLOBAL_PARSER.col_count;
     return 0;
 };
 
-table_column_attr: column_create type attribute | column_create type attribute ',' table_column_attr;
+table_column_attr: column_create type attribute_list | column_create type attribute_list ',' table_column_attr;
 
 type: INTEGER {setColumnTypeCreate('I');}
     | VARCHAR {setColumnTypeCreate('S');} parentesis_open NUMBER {setColumnSizeCreate(yylval.strval);} parentesis_close
     | DOUBLE {setColumnTypeCreate('D');};
-    | CHAR {setColumnTypeCreate('C');};
+    | CHAR {setColumnTypeCreate('C');}
+    | UNKNOWN_TYPE;
 
 column_create: OBJECT {setColumnCreate(yytext);};
 
+attribute_list: /*empty*/ | attribute attribute_list;
+
 attribute: /*optional*/
          | PRIMARY KEY {setColumnPKCreate();}
-         | REFERENCES table_fk ABRE_P column_fk FECHA_P;
+         | REFERENCES table_fk ABRE_P column_fk FECHA_P
+         | 
+         | OBJECT {addError("Invalid attribute.");};
 
 table_fk: OBJECT {setColumnFKTableCreate(yytext);};
 
