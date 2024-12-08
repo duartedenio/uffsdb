@@ -674,48 +674,62 @@ int validaColsWhere(Lista *tok,column *colunas,int qtdColunas){
   return 1;
 }
 
-void printConsulta(Lista *p,Lista *l){
-  if(!l->tam){
+void printConsulta(Lista *projecao,Lista *dados){
+  if(!dados->tam){
     printf("\n 0 Linhas.\n");
     return;
   }
   //cabecalho
-  for(Nodo *j = ((Lista *)(l->prim->inf))->prim,
-           *i = p->prim; j; j = j->prox,i = i->prox){
-    inf_where *jw = (inf_where *)(j->inf);
-    if(jw->id == (int)'S') printf(" %-20s ", (char *)(i->inf));
-    else printf(" %-10s ", (char *)(i->inf));
-    if(j->prox) printf("|");
+  for (Nodo *dataNode = ((Lista *)(dados->prim->inf))->prim, *projNode = projecao->prim; dataNode; dataNode = dataNode->prox, projNode = projNode->prox) {
+      
+      inf_where *dataInf = (inf_where *)(dataNode->inf);
+      
+      if (dataInf->id == (int)'S') {
+          printf(" %-20s ", (char *)(projNode->inf));
+      } else {
+          printf(" %-10s ", (char *)(projNode->inf));
+      }
+
+      if (dataNode->prox) {
+          printf("|");
+      }
   }
+
   printf("\n");
-  for(Nodo *j = ((Lista *)(l->prim->inf))->prim; j; j = j->prox){
-    inf_where *jw = (inf_where *)(j->inf);
-    printf("%s",(jw->id == (int)'S') ? "----------------------"
-                                     : "------------");
-    if(j->prox) printf("+");
+  
+  for (Nodo *dataNode = ((Lista *)(dados->prim->inf))->prim; dataNode; dataNode = dataNode->prox) {
+      inf_where *dataInf = (inf_where *)(dataNode->inf);
+      printf("%s", (dataInf->id == (int)'S') ? "----------------------" : "------------");
+      if (dataNode->prox) {
+          printf("+");
+      }
   }
+
   printf("\n");//fim do cabecalho
-  for(Nodo *i = l->prim; i; i = i->prox){
-    Lista *li = (Lista *)(i->inf);
-    for(Nodo *j = li->prim; j; j = j->prox){
-      inf_where *ij = (inf_where *)(j->inf);
-      if(ij->id == (int)'S')
-        printf(" %-20s ", (char *)ij->token);
-      else if(ij->id == (int)'I'){
-        int *n = (int *)(ij->token);
-        printf(" %-10d ", *n);
+
+  for (Nodo *rowNode = dados->prim; rowNode; rowNode = rowNode->prox) {
+      Lista *rowList = (Lista *)(rowNode->inf);
+        for (Nodo *dataNode = rowList->prim; dataNode; dataNode = dataNode->prox) {
+          inf_where *dataInf = (inf_where *)(dataNode->inf);
+          if (dataInf->id == (int)'S') {
+              printf(" %-20s ", (char *)dataInf->token);
+          } else if (dataInf->id == (int)'I') {
+              int *n = (int *)(dataInf->token);
+              printf(" %-10d ", *n);
+          } else if (dataInf->id == (int)'C') {
+              printf(" %-10c ", *(char *)dataInf->token);
+          } else if (dataInf->id == (int)'D') {
+              double *n = (double *)(dataInf->token);
+              printf(" %-10f ", *n);
+          }
+          if (dataNode->prox) {
+              printf("|");
+          }
       }
-      else if(ij->id == (int)'C')
-        printf(" %-10c ", *(char *)ij->token);
-      else if(ij->id == (int)'D'){
-        double *n = (double *)(ij->token);
-        printf(" %-10f ", *n);
-      }
-      if(j->prox) printf("|");
-    }
-    printf("\n");
+      printf("\n");
   }
-  printf("\n %d Linha%s.\n",l->tam,l->tam == 1 ? "" : "s");
+  
+  printf("\n %d Linha%s.\n", dados->tam, dados->tam == 1 ? "" : "s");
 }
 
 void adcResultado(Lista *resultado,Lista *tupla,char *pertence){
@@ -812,25 +826,46 @@ Lista *op_select(inf_select *select) {
       free(esquema);
       return NULL;
     }
-    for(k = j = i = 0; !abortar && k < bufferpoll[p].nrec; k++){
-      for(i = 0; i < objeto.qtdCampos; i++,j++)
-        adcNodo(tupla,tupla->ult,(void *)(&pagina[j]));
-      char sat = 0;
-      if(select->tok){
-        Lista *l = resArit(select->tok,tupla);
-        if(l){
-          Lista *l2 = relacoes(l);
-          sat = (logPosfixa(l2) != 0);
-        }
-        else abortar = 1;
+    for (k = 0; !abortar && k < bufferpoll[p].nrec; k++) {
+      for (Nodo *projNode = select->proj->prim; projNode; projNode = projNode->prox) {
+          // Verifica se a coluna atual está na lista de projeção
+          int found = 0;
+          for (i = 0; i < objeto.qtdCampos; i++) {
+              if (strcmp((char *)projNode->inf, pagina[i].nomeCampo) == 0) {
+                  found = 1;
+                  adcNodo(tupla, tupla->ult, (void *)(&pagina[i]));
+                  break;
+              }
+          }
+          if (!found) {
+              printf("ERROR: Column '%s' not found in table.\n", (char *)projNode->inf);
+              abortar = 1;
+              break;
+          }
       }
-      else sat = 1;
-      if(!abortar && sat) adcResultado(resultado,tupla,pertence);
-      for(Nodo *n1 = tupla->prim,*n2; n1; n1 = n2){
-        n2 = n1->prox;
-        rmvNodoPtr(tupla,n1);
-        //não precisa dar free na informação
-        //pois é ponteiro pra pagina[j]
+      if (abortar) {
+          break;
+      }
+      char sat = 0;
+      if (select->tok) {
+          Lista *l = resArit(select->tok, tupla);
+          if (l) {
+              Lista *l2 = relacoes(l);
+              sat = (logPosfixa(l2) != 0);
+          } else {
+              abortar = 1;
+          }
+      } else {
+          sat = 1;
+      }
+      if (!abortar && sat) {
+          adcResultado(resultado, tupla, pertence);
+      }
+      for (Nodo *n1 = tupla->prim, *n2; n1; n1 = n2) {
+          n2 = n1->prox;
+          rmvNodoPtr(tupla, n1);
+          //não precisa dar free na informação
+          //pois é ponteiro pra pagina[j]
       }
       tupla->prim = tupla->ult = NULL;
     }
@@ -844,6 +879,7 @@ Lista *op_select(inf_select *select) {
   free(bufferpoll); bufferpoll = NULL;
   return resultado;
 }
+
 /* ----------------------------------------------------------------------------------------------
     Objetivo:   Copia todas as informações menos a tabela do objeto, que será removida.
     Parametros: Objeto que será removido do schema.
