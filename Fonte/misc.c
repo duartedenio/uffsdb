@@ -228,3 +228,15 @@ double convertD(char u[]) {
 void clear() {
 	system("clear");
 }
+
+void remove_zeros_on_left(char *u) {
+    
+    //se existe apenas um zero no 'u', retorna sem fazer nada
+    if (strcmp(u, "0") == 0) {
+        return;
+    }
+
+    int valor = atoi(u);
+
+    sprintf(u,"%d",valor);
+}
