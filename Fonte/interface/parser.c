@@ -274,6 +274,12 @@ int interface() {
         pthread_create(&pth, NULL, (void*)yyparse, &GLOBAL_PARSER);
         pthread_join(pth, NULL);
 
+        // Detecta EOF ( Ctrl+D ) e encerra o looping principal
+        if(feof(stdin)) {
+            printf("\nEOF detectado, encerrando conexão...\n");
+            break;
+        };
+
         if (GLOBAL_PARSER.noerror) {
             if (GLOBAL_PARSER.mode != 0) {
                 if (!connected.conn_active) {
