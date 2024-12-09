@@ -45,6 +45,7 @@ void connect(char *nome) {
     strcpylower(connected.db_name, nome);
     connected.conn_active = 1;
     printf("You are now connected to database \"%s\" as user \"uffsdb\".\n", nome);
+    prefix();
   }
   else {
   	printf("ERROR: Failed to establish connection with database named \"%s\". (Error code: %d)\n", nome, r);
@@ -256,20 +257,23 @@ void setMode(char mode) {
     GLOBAL_PARSER.step++;
 }
 
+void prefix(){
+    if (!connected.conn_active) {
+        printf(">");
+    } else {
+        printf("%s=# ", connected.db_name);
+    }
+}
+
 int interface() {
     pthread_t pth;
 
     pthread_create(&pth, NULL, (void*)clearGlobalStructs, NULL);
     pthread_join(pth, NULL);
     Lista *resultado;
-    connect("uffsdb"); // conecta automaticamente no banco padrão
+    connect("uffsdb"); // Conecta automaticamente no banco padrão
     SELECT.tok = SELECT.proj = NULL;
-    while(1){
-        if (!connected.conn_active) {
-            printf(">");
-        } else {
-            printf("%s=# ", connected.db_name);
-        }
+    while (1) {
 
         pthread_create(&pth, NULL, (void*)yyparse, &GLOBAL_PARSER);
         pthread_join(pth, NULL);
@@ -279,44 +283,51 @@ int interface() {
                 if (!connected.conn_active) {
                     notConnected();
                 } else {
-                    switch(GLOBAL_PARSER.mode) {
+                    switch (GLOBAL_PARSER.mode) {
                         case OP_INSERT:
                             if (GLOBAL_DATA.N > 0) {
                                 insert(&GLOBAL_DATA);
-                            }
-                            else
+                            } else {
                                 printf("WARNING: Nothing to be inserted. Command ignored.\n");
+                                prefix();
+                            }
                             break;
                         case OP_SELECT:
                             resultado = op_select(&SELECT);
-                            if(resultado){
-                              printConsulta(SELECT.proj,resultado);
-                              resultado = NULL;
+                            if (resultado) {
+                                printConsulta(SELECT.proj, resultado);
+                                resultado = NULL;
                             }
+                            prefix();
                             break;
                         case OP_CREATE_TABLE:
                             createTable(&GLOBAL_DATA);
+                            prefix();
                             break;
                         case OP_CREATE_DATABASE:
                             createDB(GLOBAL_DATA.objName);
+                            prefix();
                             break;
                         case OP_DROP_TABLE:
                             excluirTabela(GLOBAL_DATA.objName);
+                            prefix();
                             break;
                         case OP_DROP_DATABASE:
                             dropDatabase(GLOBAL_DATA.objName);
+                            prefix();
                             break;
                         case OP_CREATE_INDEX:
                             createIndex(&GLOBAL_DATA);
+                            prefix();
                             break;
-                        default: break;
+                        default:
+                            break;
                     }
-
                 }
             }
         } else {
             GLOBAL_PARSER.consoleFlag = 1;
-            switch(GLOBAL_PARSER.mode) {
+            switch (GLOBAL_PARSER.mode) {
                 case OP_CREATE_DATABASE:
                 case OP_DROP_DATABASE:
                 case OP_CREATE_TABLE:
@@ -328,9 +339,10 @@ int interface() {
                         GLOBAL_PARSER.consoleFlag = 0;
                         printf("Expected object name.\n");
                     }
-                break;
+                    break;
 
-                default: break;
+                default:
+                    break;
             }
 
             if (GLOBAL_PARSER.mode == OP_CREATE_TABLE) {
@@ -353,9 +365,12 @@ int interface() {
             pthread_create(&pth, NULL, (void*)clearGlobalStructs, NULL);
             pthread_join(pth, NULL);
         }
+
     }
+    prefix();
     return 0;
 }
+
 
 void yyerror(char *s, ...) {
   GLOBAL_PARSER.noerror = 0;

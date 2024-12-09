@@ -30,6 +30,11 @@ int yylex_destroy();
 extern int  yylineno;
 
 /*
+  Mostra o nome do banco conectado
+*/
+void prefix();
+
+/*
   Reseta as estruturas da estrutura SELECT.
 */
 void resetSelect();
