@@ -222,5 +222,7 @@ atributo: OBJECT {setColumnBtreeCreate(yytext);}
 
 
 
+
+
 /* END */
 %%

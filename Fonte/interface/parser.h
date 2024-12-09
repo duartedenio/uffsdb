@@ -53,9 +53,6 @@ void adcProjSelect(char *col);
  */
 void yyerror(char *s, ...);
 
-/* Imprime o erro caso o comando seja inválido
- */
-void invalidCommand(char *command);
 
 /* Mensagem exibida quando o usuário tenta executar um comando
  * sem estar conectado à nenhuma base de dados.
@@ -126,3 +123,8 @@ void clearGlobalStructs();
  * dos tokens iniciais.
  */
 void setMode(char mode);
+
+
+void invalidCommand(char *command);
+
+
