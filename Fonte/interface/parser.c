@@ -280,6 +280,17 @@ int interface() {
         } else {
             snprintf(prompt, sizeof(prompt), "%s=# ", connected.db_name);
         }
+
+        pthread_create(&pth, NULL, (void*)yyparse, &GLOBAL_PARSER);
+        pthread_join(pth, NULL);
+
+        // Detecta EOF ( Ctrl+D ) e encerra o looping principal
+        if(feof(stdin)) {
+            printf("\nEOF detectado, encerrando conexão...\n");
+            break;
+        };
+
+
         fflush(stdout);
         char *input = readline(prompt); 
         if(!input) break;
@@ -288,6 +299,7 @@ int interface() {
         getComando(input);
         free(input);
         
+
         if (GLOBAL_PARSER.noerror) {
             if (GLOBAL_PARSER.mode != 0) {
                 if (!connected.conn_active) {

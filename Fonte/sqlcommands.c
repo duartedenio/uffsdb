@@ -405,7 +405,13 @@ int finalizaInsert(char *nome, column *c, int tamTupla){
     //-----------------------
     char *arquivoIndice = NULL;
     //------------------------
-
+    
+    // Método para tratar o column com tipo int, removendo os zeros à esquerda em tipo int para evitar problemas
+	  //  do tipo '001' e '1', evitando erros como duplicação de chaves.
+	    if(c->tipoCampo==0){
+      remove_zeros_on_left(c->valorCampo);
+    }
+    
     for(j = 0, temp = c; j < objeto.qtdCampos && temp != NULL; j++, temp = temp->next){
         switch(tab2[j].chave){
             case NPK:
