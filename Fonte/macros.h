@@ -1,5 +1,6 @@
 #define FMACROS 0 // flag para identificar se macros.h já foi incluída
 // TRATAMENTO DE ERROS
+// ERROS inteiros
 #define SUCCESS 0
 #define ERRO_NO_TIPO_INTEIRO -1
 #define ERRO_NO_TAMANHO_STRING -2
@@ -20,6 +21,11 @@
 #define ERRO_REMOVER_ARQUIVO -17
 #define ERRO_REMOVER_ARQUIVO_OBJECT -18
 #define ERRO_REMOVER_ARQUIVO_SCHEMA -19
+#define ERRO_NO_TAMANHO_INTEGER -20
+#define ERRO_LEITURA_DADOS_DELETADOS -20
+#define ERRO_INDEX_NULL -21
+
+// ERROS ponteiro
 #define ERRO_DE_ALOCACAO NULL
 #define ERRO_ABRIR_ESQUEMA NULL
 #define ERRO_NOME_TABELA_INVALIDO NULL
@@ -28,6 +34,8 @@
 #define ERRO_PAGINA_INVALIDA NULL
 #define ERRO_DE_LEITURA NULL
 #define ERRO_PARAMETRO NULL
+#define TUPLA_DELETADA ((char *) -1)
+#define COLUNA_NULL ((char *) -2)
 
 //tratamento PK e FK
 #define NPK 0
@@ -36,7 +44,7 @@
 #define BT 3
 ////
 #define SIZE 512                // Tamanho da página.
-#define PAGES 1024              // Número de páginas.
+#define PAGES 10                // Número de páginas.
 #define TAMANHO_NOME_CAMPO 40   // Tamanho do nome dos campos de uma tabela.
 #define TAMANHO_NOME_TABELA 20  // Tamanho do nome da tabela.
 #define TAMANHO_NOME_ARQUIVO 20 // Tamanho do nome do arquivo.

@@ -13,6 +13,8 @@
 #include "misc.h"
 #include "dictionary.h"
 
+static int isDeleted(char *linha);
+
 // INICIALIZACAO DO BUFFER
 tp_buffer * initbuffer(){
 
@@ -52,54 +54,62 @@ int printbufferpoll(tp_buffer *buffpoll, tp_table *s,struct fs_objects objeto, i
 }
 
 // RETORNA PAGINA DO BUFFER
-column * getPage(tp_buffer *buffer, tp_table *campos, struct fs_objects objeto, int page){
+tupla *getPage(tp_buffer *buffer, tp_table *campos, struct fs_objects objeto, int page){
 
     if(page >= PAGES) return ERRO_PAGINA_INVALIDA;
 
     if(buffer[page].nrec == 0) //Essa página não possui registros
         return ERRO_PARAMETRO;
 
-    column *colunas = (column *)malloc(sizeof(column)*objeto.qtdCampos*(buffer[page].nrec)); //Aloca a quantidade de campos necessária
+    tupla *tuplas = (tupla *)malloc(sizeof(tupla) * (buffer[page].nrec)); //Aloca a quantidade de tuplas necessária
 
-    if(!colunas)
+    if(!tuplas)
         return ERRO_DE_ALOCACAO;
 
-    memset(colunas, 0, sizeof(column)*objeto.qtdCampos*(buffer[page].nrec));
-
-    int i=0, j=0, t=0, h=0;
+    int  indiceTupla=0, i=0;
 
     if (!buffer[page].position)
-        return colunas;
+        return tuplas;
+
+    char* nullos =(char *)malloc(objeto.qtdCampos * sizeof(char));
 
     while(i < buffer[page].position){
-        t=0;
-        if(j >= objeto.qtdCampos)
-            j=0;
-
-        colunas[h].valorCampo = (char *)malloc(sizeof(char)*campos[j].tam+1);
-        memset(colunas[h].valorCampo, '\0', campos[j].tam+1);
-        colunas[h].tipoCampo = campos[j].tipo;  //Guarda tipo do campo
-
-        strcpy(colunas[h].nomeCampo, campos[j].nome); //Guarda nome do campo
-
-        while(t < campos[j].tam){
-            colunas[h].valorCampo[t] = buffer[page].data[i]; //Copia os dados
-            t++;
-            i++;
+        
+        if(isDeleted(buffer[page].data + i)) {
+            i+=tamTupla(campos, objeto);
+            continue;
         }
-        colunas[h].valorCampo[t] = '\0';
+        tuplas[indiceTupla].endereco = i; //para o 
 
-        h++;
-        j++;
+        i++; //para o byte de deleted
+        memcpy(nullos, buffer[page].data + i, objeto.qtdCampos);
+        i += objeto.qtdCampos;
+
+
+        tuplas[indiceTupla].column = (column *)malloc(sizeof(column) * objeto.qtdCampos);
+        for (int ic = 0; ic < objeto.qtdCampos; ic++){
+            column *c = &tuplas[indiceTupla].column[ic];
+
+            c->tipoCampo = campos[ic].tipo;
+            strcpy(c->nomeCampo, campos[ic].nome); //Guarda nome do campo
+            if(nullos[ic]) c->valorCampo = COLUNA_NULL;
+            else {
+                c->valorCampo = (char *)malloc(sizeof(char) * campos[ic].tam + 1);
+                memcpy(c->valorCampo, buffer[page].data + i, campos[ic].tam);
+                c->valorCampo[campos[ic].tam] = '\0';
+            }
+            i += campos[ic].tam;
+        }
+    
+        indiceTupla++;
     }
-
-    return colunas; //Retorna a 'page' do buffer
+    return tuplas; //Retorna a 'page' do buffer
 }
 // EXCLUIR TUPLA BUFFER
 column * excluirTuplaBuffer(tp_buffer *buffer, tp_table *campos, struct fs_objects objeto, int page, int nTupla){
-    column *colunas = (column *)malloc(sizeof(column)*objeto.qtdCampos);
+    column *tuplas = (column *)malloc(sizeof(column)*objeto.qtdCampos);
 
-    if(colunas == NULL)
+    if(tuplas == NULL)
         return ERRO_DE_ALOCACAO;
 
     if(buffer[page].nrec == 0) //Essa página não possui registros
@@ -111,12 +121,12 @@ column * excluirTuplaBuffer(tp_buffer *buffer, tp_table *campos, struct fs_objec
     while(i < tamTpl*nTupla+tamTpl){
         t=0;
 
-        colunas[j].valorCampo = (char *)malloc(sizeof(char)*campos[j].tam); //Aloca a quantidade necessária para cada campo
-        colunas[j].tipoCampo = campos[j].tipo;  // Guarda o tipo do campo
-        strcpylower(colunas[j].nomeCampo, campos[j].nome);   //Guarda o nome do campo
+        tuplas[j].valorCampo = (char *)malloc(sizeof(char)*campos[j].tam); //Aloca a quantidade necessária para cada campo
+        tuplas[j].tipoCampo = campos[j].tipo;  // Guarda o tipo do campo
+        strcpylower(tuplas[j].nomeCampo, campos[j].nome);   //Guarda o nome do campo
 
         while(t < campos[j].tam){
-            colunas[j].valorCampo[t] = buffer[page].data[i];    //Copia os dados
+            tuplas[j].valorCampo[t] = buffer[page].data[i];    //Copia os dados
             t++;
             i++;
         }
@@ -130,17 +140,17 @@ column * excluirTuplaBuffer(tp_buffer *buffer, tp_table *campos, struct fs_objec
     buffer[page].position -= tamTpl;
     buffer[page].nrec--;
 
-    return colunas; //Retorna a tupla excluida do buffer
+    return tuplas; //Retorna a tupla excluida do buffer
 }
 // INSERE UMA TUPLA NO BUFFER!
 char *getTupla(tp_table *campos,struct fs_objects objeto, int from){ //Pega uma tupla do disco a partir do valor de from
-    int tamTpl = tamTupla(campos, objeto);
+    // + qtdCampos para os bytes de coluna null e +1 para o byte de tupla valida
+    int tamTpl = tamTupla(campos, objeto); 
     char *linha=(char *)malloc(sizeof(char)*tamTpl);
-    memset(linha, '\0', tamTpl);
 
     FILE *dados;
     from = from * tamTpl;
-	  char directory[LEN_DB_NAME_IO];
+	char directory[LEN_DB_NAME_IO];
     strcpy(directory, connected.db_directory);
     strcat(directory, objeto.nArquivo);
 
@@ -151,16 +161,18 @@ char *getTupla(tp_table *campos,struct fs_objects objeto, int from){ //Pega uma 
         return ERRO_DE_LEITURA;
     }
 
-    fseek(dados, from, 1);
-    if(fgetc (dados) != EOF){
-      fseek(dados, -1, 1);
-      fread(linha, sizeof(char), tamTpl, dados); //Traz a tupla inteira do arquivo
+    fseek(dados, from, SEEK_CUR);
+    if(fgetc (dados) == EOF){
+        fclose(dados);
+        free(linha);
+        return ERRO_DE_LEITURA;
     }
-    else {       //Caso em que o from possui uma valor inválido para o arquivo de dados
-      fclose(dados);
-      free(linha);
-      return ERRO_DE_LEITURA;
-    }
+    
+    fseek(dados, -1, SEEK_CUR);
+    fread(linha, sizeof(char), tamTpl, dados); //Traz a tupla inteira do arquivo
+
+
+  
 
     fclose(dados);
     return linha;
@@ -173,23 +185,26 @@ void setTupla(tp_buffer *buffer,char *tupla, int tam, int pos) { //Coloca uma tu
 }
 //// insere uma tupla no buffer
 int colocaTuplaBuffer(tp_buffer *buffer, int from, tp_table *campos, struct fs_objects objeto){//Define a página que será incluida uma nova tupla
-  int i, found;
-  char *tupla = getTupla(campos,objeto,from);
-  if(tupla == ERRO_DE_LEITURA) {
-    free(tupla);
-    return ERRO_LEITURA_DADOS;
-  }
+    int i, found;
+    char *tupla = getTupla(campos, objeto, from);
+    if(tupla == ERRO_DE_LEITURA)  return ERRO_LEITURA_DADOS;
 
-  for(i = found = 0; !found && i < PAGES; i++) {//Procura pagina com espaço para a tupla.
-    if(SIZE - buffer[i].position > tamTupla(campos, objeto)) {// Se na pagina i do buffer tiver espaço para a tupla, coloca tupla.
-      setTupla(buffer, tupla, tamTupla(campos, objeto), i);
-      found = 1;
-      buffer[i].position += tamTupla(campos, objeto); // Atualiza proxima posição vaga dentro da pagina.
-      buffer[i].nrec++;
+    int tam = tamTupla(campos, objeto);
+
+    for(i = found = 0; !found && i < PAGES; i++) {//Procura pagina com espaço para a tupla.
+        if(SIZE - buffer[i].position > tam) {// Se na pagina i do buffer tiver espaço para a tupla, coloca tupla.
+            setTupla(buffer, tupla, tam, i);
+            found = 1;
+            buffer[i].position += tam; // Atualiza proxima posição vaga dentro da pagina.
+            if(isDeleted(tupla)) {
+                free(tupla);
+                return ERRO_LEITURA_DADOS_DELETADOS;
+            }
+             buffer[i].nrec++;
+        }
     }
-  }
-  free(tupla);
-  return found ? SUCCESS : ERRO_BUFFER_CHEIO;
+    free(tupla);
+    return found ? SUCCESS : ERRO_BUFFER_CHEIO;
 }
 ////////
 
@@ -204,4 +219,20 @@ void cria_campo(int tam, int header, char *val, int x) {
     return;
   }
   for(i = 0; i < x; i++) printf(" ");
+}
+
+static int isDeleted(char *linha){
+    return linha[0]; //byte se foi deletado
+}
+
+void addColumn(column **colList, column *c){
+    c->next = NULL;
+    if(*colList == NULL) {
+        *colList = c;
+        return;
+    }
+    column *t = *colList;
+    while(t->next != NULL) t = t->next;
+    
+    t->next = c;
 }

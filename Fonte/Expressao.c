@@ -46,7 +46,9 @@ void limparExpNodos(Lista *l){
 void limparExpNodosInf(Lista *l){
   for(Nodo *k = l->prim,*j; k; k = j){
     inf_where *kw = (inf_where *)(k->inf);
-    free(kw->token); kw->token = NULL;
+    if (kw->token != COLUNA_NULL) {
+      free(kw->token); kw->token = NULL;
+    }
     free(kw); kw = NULL;
     j = k->prox;
     rmvNodoPtr(l,k);
@@ -64,81 +66,76 @@ char buscaTipoObjecto(inf_where *iw,Lista *t){
 }
 
 char validaExp(Lista *l,Lista *t){
-  for(Nodo *i = l->prim; i; i = i->prox){
-    inf_where *iw = (inf_where *)(i->inf);
-    char tipo1 = buscaTipoObjecto(iw,t);
-    if(tipo1 != STRING && tipo1 != VALUE_NUMBER) continue;
-    for(Nodo *j = i->prox; j; j = j->prox){
-      char tipo2 = buscaTipoObjecto((inf_where *)(j->inf),t);
-      if(tipo2 == LOGICO) break;
-      if((tipo2 == STRING && tipo1 == VALUE_NUMBER) ||
-          (tipo2 == VALUE_NUMBER && tipo1 == STRING) ) return 0;
+    for(Nodo *i = l->prim; i; i = i->prox){
+        inf_where *iw = (inf_where *)(i->inf);
+        char tipo1 = buscaTipoObjecto(iw,t);
+        if(tipo1 != STRING && tipo1 != VALUE_NUMBER) continue;
+        for(Nodo *j = i->prox; j; j = j->prox){
+            char tipo2 = buscaTipoObjecto((inf_where *)(j->inf),t);
+            if(tipo2 == LOGICO) break;
+            if((tipo2 == STRING && tipo1 == VALUE_NUMBER) || (tipo2 == VALUE_NUMBER && tipo1 == STRING) ) return 0;
+        }
     }
-  }
-  return 1;
+    return 1;
 }
 
 Lista *resArit(Lista *l,Lista *t){
-  if(!validaExp(l,t)){
-    printf("Operação entre tipos diferentes inválida.\n");
-    return NULL;
-  }
-  Lista *op = novaLista(NULL),
-        *novaExp = novaLista(NULL);
-  for(Nodo *i = l->prim; i; i = i->prox){
-    inf_where *iw = (inf_where *)(i->inf);
-    if(iw->id == LOGICO || iw->id == RELACIONAL){
-      aritPosfixa(op,t,novaExp);
-      limparExpNodos(op);
-      adcNodo(novaExp,novaExp->ult,
-                      (void *)novoTokenWhere(iw->token,iw->id));
+    if(!validaExp(l,t)){
+        printf("Operação entre tipos diferentes inválida.\n");
+        return NULL;
     }
-    else adcNodo(op,op->ult,i->inf);
-  }
-  aritPosfixa(op,t,novaExp);
-  limparExpNodos(op);
-  free(op); op = NULL;
-  return novaExp;
+    Lista *op = novaLista(NULL), *novaExp = novaLista(NULL);
+    for(Nodo *i = l->prim; i; i = i->prox){
+        inf_where *iw = (inf_where *)(i->inf);
+        if(iw->id == LOGICO || iw->id == RELACIONAL){
+            aritPosfixa(op,t,novaExp);
+            limparExpNodos(op);
+            adcNodo(novaExp,novaExp->ult, (void *)novoTokenWhere(iw->token,iw->id));
+        }
+        else adcNodo(op,op->ult,i->inf);
+    }
+    aritPosfixa(op,t,novaExp);
+    limparExpNodos(op);
+    free(op); op = NULL;
+    return novaExp;
 }
 
 void aritPosfixa(Lista *l,Lista *t,Lista *novaExp){
-  int fechap = 0;
-  Pilha *p = novaPilha();
-  Lista *pos = novaLista(NULL);
-  for(Nodo *i = l->prim; i; i = i->prox){
-    inf_where *iw = (inf_where *)(i->inf);
-    if(iw->id == STRING || iw->id == OBJETO || iw->id == VALUE_NUMBER )
-      adcNodo(pos,pos->ult,(void *)novoTokenWhere(iw->token,iw->id));
-    else if(iw->id == ABRE_PARENT){
-      push(p,i->inf);
-      adcNodo(novaExp,novaExp->ult,(void *)novoTokenWhere(iw->token,iw->id));
+    int fechap = 0;
+    Pilha *p = novaPilha();
+    Lista *pos = novaLista(NULL);
+    for(Nodo *i = l->prim; i; i = i->prox){
+        inf_where *iw = (inf_where *)(i->inf);
+        if(iw->id == STRING || iw->id == OBJETO || iw->id == VALUE_NUMBER ) adcNodo(pos,pos->ult,(void *)novoTokenWhere(iw->token,iw->id));
+        else if(iw->id == ABRE_PARENT){
+            push(p,i->inf);
+            adcNodo(novaExp,novaExp->ult,(void *)novoTokenWhere(iw->token,iw->id));
+        }
+        else if(operador(iw->id)){
+            while(p->tam && precedArit(iw->id) <= precedArit(((inf_where *)topo(p))->id)){
+                inf_where *k = (inf_where *)pop(p);
+                adcNodo(pos,pos->ult,(void *)novoTokenWhere(k->token,k->id));
+            }
+            push(p,i->inf);
+        }
+        else{//caso de entrada: ')'
+            fechap++;
+            while(p->tam && (iw = ((inf_where *)pop(p)))->id != ABRE_PARENT)
+                adcNodo(pos,pos->ult,(void *)novoTokenWhere(iw->token,iw->id));
+        }
     }
-    else if(operador(iw->id)){
-      while(p->tam && precedArit(iw->id) <= precedArit(((inf_where *)topo(p))->id)){
-        inf_where *k = (inf_where *)pop(p);
-        adcNodo(pos,pos->ult,(void *)novoTokenWhere(k->token,k->id));
-      }
-      push(p,i->inf);
+    while(p->tam){
+        inf_where *iw = (inf_where *)pop(p);
+        if(iw->id != ABRE_PARENT) adcNodo(pos,pos->ult, (void *)novoTokenWhere(iw->token,iw->id));
     }
-    else{//caso de entrada: ')'
-      fechap++;
-      while(p->tam && (iw = ((inf_where *)pop(p)))->id != ABRE_PARENT)
-        adcNodo(pos,pos->ult,(void *)novoTokenWhere(iw->token,iw->id));
-    }
-  }
-  while(p->tam){
-    inf_where *iw = (inf_where *)pop(p);
-    if(iw->id != ABRE_PARENT) adcNodo(pos,pos->ult,
-                                      (void *)novoTokenWhere(iw->token,iw->id));
-  }
-  inf_where *iw = opArit(pos,t);
-  adcNodo(novaExp,novaExp->ult,(void *)novoResWhere(iw->token,iw->id));
+    inf_where *iw = opArit(pos,t);
+    adcNodo(novaExp,novaExp->ult,(void *)novoResWhere(iw->token,iw->id));
 
-  while(fechap--) adcNodo(novaExp,novaExp->ult,
-                          (void *)novoTokenWhere(")",FECHA_PARENT));
-  free(p); p = NULL;
-  limparExpNodosInf(pos);
-  free(pos); pos = NULL;
+    while(fechap--) adcNodo(novaExp,novaExp->ult,
+                            (void *)novoTokenWhere(")",FECHA_PARENT));
+    free(p); p = NULL;
+    limparExpNodosInf(pos);
+    free(pos); pos = NULL;
 }
 
 inf_where *opArit(Lista *l,Lista *t){
@@ -147,6 +144,8 @@ inf_where *opArit(Lista *l,Lista *t){
   Pilha *p = novaPilha();
   for(Nodo *i = l->prim; i; i = i->prox){
     inf_where *iw = (inf_where *)(i->inf);
+    if(iw->id == NULLA) return iw;
+    
     if(iw->id == VALUE_NUMBER) push(p,(void *)iw);
     else{
       inf_where *op1 = (inf_where *)pop(p);
@@ -185,7 +184,8 @@ void substitui(Lista *l,Lista *t){
       column *c = buscaColuna(t,(char *)(iw->token));
       free(iw->token);
       iw->token = converter(c->tipoCampo,c->valorCampo);
-      if(c->tipoCampo == 'S' || c->tipoCampo == 'C') iw->id = STRING;
+      if(iw->token == COLUNA_NULL) iw->id = NULLA;
+      else if(c->tipoCampo == 'S' || c->tipoCampo == 'C') iw->id = STRING;
       else if(c->tipoCampo == 'I' || c->tipoCampo == 'D') iw->id = VALUE_NUMBER;
     }
     else if(iw->id == VALUE_NUMBER){//todo inteiro vai pra double.
@@ -206,19 +206,22 @@ column *buscaColuna(Lista *t,char *str){
   return NULL;//nao pode chegar aqui pq a query já foi validada.
 }
 
-void *converter(char tipo,char valor[]){
-  if(tipo == 'S' || tipo == 'C'){
-    char *str = malloc(sizeof(char)*strlen(valor)+3);
-    str[0] = '\0'; //não retire.
-    strcat(str,"'");
-    strcat(str,valor);
-    strcat(str,"'");
-    return (void *)str;
-  }
-  double *num = malloc(sizeof(double));
-  if(tipo == 'I') *num = (*((int *)valor))*1.0;
-  else num = (double *)valor;
-  return (void *)num;
+void *converter(char tipo,char* valor){
+    if(valor == COLUNA_NULL) return COLUNA_NULL;
+    if(tipo == 'S' || tipo == 'C'){
+        char *str = malloc(sizeof(char)*strlen(valor)+3);
+        str[0] = '\0'; //não retire.
+        strcat(str,"'");
+        strcat(str,valor);
+        strcat(str,"'");
+        return (void *)str;
+    }
+
+    double *num = malloc(sizeof(double));
+    if(tipo == 'I') *num = (*((int *)valor))*1.0;
+    else *num = *(double *)valor;
+    
+    return num;
 }
 
 //daqui pra baixo relações
@@ -239,13 +242,14 @@ Lista *relacoes(Lista *l){
         rmvNodoPtr(r,r->ult);
       }
     }
-    else if((iw->id == VALUE_NUMBER || iw->id == STRING)
+    else if((iw->id == VALUE_NUMBER || iw->id == STRING || iw->id == NULLA)
             && p->tam == 2){
       inf_where *oper = pop(p);
       inf_where *op = pop(p);
       char val = 0;
       char *oper2 = (char *)(oper->token);
-      if(!strcmp(oper2,">")){
+      if (op->id == NULLA || iw->id == NULLA)  val = 0;
+      else if(!strcmp(oper2,">")){
         if(op->id == STRING)
           val = strcmp((char *)(op->token), (char *)(iw->token)) > 0;
         else val = (*(double *)(op->token) > *(double *)(iw->token));

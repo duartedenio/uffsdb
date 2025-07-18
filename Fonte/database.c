@@ -186,11 +186,11 @@ void dbInit(char *db) {
 	char *name;
 	if(system("mkdir data > /dev/null 2>&1") == -1)
 		printf("ERROR: It was not possible to initialize uffsdb\n");
-    if (db==NULL){
-		    name = malloc(sizeof(char)*7);
-		    name[0]='u';name[1]='f';name[2]='f';name[3]='s';
-		    name[4]='d';name[5]='b';name[6]=0;
-    } else name=db;
+  if (db==NULL){
+    name = malloc(sizeof(char)*7);
+    name[0]='u';name[1]='f';name[2]='f';name[3]='s';
+    name[4]='d';name[5]='b';name[6]=0;
+  } else name=db;
 
 	createDB(name);
 }
