@@ -58,7 +58,7 @@ int existeAtributo(char *nomeTabela, column *c){
     tp_table *tabela;
     tp_buffer *bufferpoll;
     column *aux = NULL;
-    column *pagina = NULL;
+    tupla *pagina = NULL;
 
     if(iniciaAtributos(&objeto, &tabela, &bufferpoll, nomeTabela) != SUCCESS)
         return ERRO_DE_PARAMETRO;
@@ -76,10 +76,10 @@ int existeAtributo(char *nomeTabela, column *c){
     if(pagina != NULL){
         count = 0;
         for(x = 0; x < objeto.qtdCampos; x++){
-            if (!pagina[x].nomeCampo) continue;
+            if (!tabela[x].nome) continue;
             for(aux = c; aux != NULL; aux=aux->next) {
                 if (!aux->nomeCampo) continue;
-                if(objcmp(pagina[x].nomeCampo, aux->nomeCampo) == 0)
+                if(objcmp(tabela[x].nome, aux->nomeCampo) == 0)
                     count++;
             }
         }
@@ -449,7 +449,7 @@ int procuraObjectArquivo(char *nomeTabela){
 //
 int tamTupla(tp_table *esquema, struct fs_objects objeto) {// Retorna o tamanho total da tupla da tabela.
 
-    int qtdCampos = objeto.qtdCampos, i, tamanhoGeral = 0;
+    int qtdCampos = objeto.qtdCampos, i, tamanhoGeral = qtdCampos + 1; // tamanho do cabeçalho
 
     if(qtdCampos){ // Lê o primeiro inteiro que representa a quantidade de campos da tabela.
         for(i = 0; i < qtdCampos; i++)
@@ -459,6 +459,18 @@ int tamTupla(tp_table *esquema, struct fs_objects objeto) {// Retorna o tamanho 
     return tamanhoGeral;
 }
 ////
+
+int tamTuplaSemByteControle(tp_table *esquema, struct fs_objects objeto) {// Retorna o tamanho total da tupla da tabela.
+
+    int qtdCampos = objeto.qtdCampos, i, tamanhoGeral = 0;
+
+    if(qtdCampos){ // Lê o primeiro inteiro que representa a quantidade de campos da tabela.
+        for(i = 0; i < qtdCampos; i++)
+            tamanhoGeral += esquema[i].tam; // Soma os tamanhos de cada campo da tabela.
+    }
+
+    return tamanhoGeral;
+}
 
 
 // CRIA TABELA
@@ -589,111 +601,52 @@ int finalizaTabela(table *t){
 }
 ////
 // INSERE NA TABELA
-column *insereValor(table  *tab, column *c, char *nomeCampo, char *valorCampo) {
-    int i;
-    column *aux;
-    column *e = NULL;
-    if(c == NULL){ // Se o valor a ser inserido é o primeiro, adiciona primeiro campo.
-        e = (column *)malloc(sizeof(column));
-        if (e == NULL) return ERRO_DE_ALOCACAO;
-        memset(e, 0, sizeof(column));
-        int tam = retornaTamanhoValorCampo(nomeCampo, tab);
-        char tipo = retornaTamanhoTipoDoCampo(nomeCampo,tab);
-        int nTam = strlen(valorCampo);
-        if (tipo == 'S') {
-            nTam = tam;
-        }
-        e->valorCampo = (char *)malloc(sizeof(char) * (nTam+1));
-        if (e->valorCampo == NULL) {
-            free(e);
-            return ERRO_DE_ALOCACAO;
-        }
-        int n = strlen(nomeCampo)+1;
+column *insereValor(table  *tab, column *c, char *nomeCampo, char *valorCampo) {    
+    column *e = (column *)malloc(sizeof(column));
+    if (e == NULL) return ERRO_DE_ALOCACAO;
+    e->next = NULL;
 
-        /**
-         * Verifica se o nome ultrapassa o limite, se sim trunca
-         */
-        if (n > TAMANHO_NOME_CAMPO) {
-           n = TAMANHO_NOME_CAMPO;
-           printf("WARNING: field name exceeded the size limit and was truncated.\n");
-        }
-        strncpylower(e->nomeCampo, nomeCampo, n-1);
-        n = strlen(valorCampo);
-        if (n > tam && tipo == 'S') {
-            n = tam;
-            printf("WARNING: value of column \"%s\" exceeded the size limit and was truncated.\n", nomeCampo);
-        }
+    int tam = retornaTamanhoValorCampo(nomeCampo, tab);
+    char tipo = retornaTamanhoTipoDoCampo(nomeCampo,tab);
+    int n = strlen(nomeCampo)+1;
 
-        for(i=0; i < n; i++) e->valorCampo[i] = valorCampo[i];
-            e->valorCampo[i] = '\0';
+    /**
+     * Verifica se o nome ultrapassa o limite, se sim trunca
+     */
+    if (n > TAMANHO_NOME_CAMPO) {
+        n = TAMANHO_NOME_CAMPO;
+        printf("WARNING: field name exceeded the size limit and was truncated.\n");
+    }
+    strncpylower(e->nomeCampo, nomeCampo, n-1);
 
-        //strncpy(e->valorCampo, valorCampo,n);
-        e->next = NULL;
-        c = e;
-        return c;
-    } else {
-        for(aux = c; aux != NULL; aux = aux->next) { // Anda até o final da lista de valores a serem inseridos e adiciona um novo valor.
-            if(aux->next == NULL){
+    if(valorCampo == COLUNA_NULL){
+        e->valorCampo = COLUNA_NULL;
+        goto fim;
+    }
+    
+    int nTam = (tipo == 'S') ? tam : strlen(valorCampo);
 
-                e = (column *)malloc(sizeof(column));
-
-                if (e == NULL) {
-                    return ERRO_DE_ALOCACAO;
-                }
-
-                memset(e, 0, sizeof(column));
-
-                int tam = retornaTamanhoValorCampo(nomeCampo, tab);
-                char tipo = retornaTamanhoTipoDoCampo(nomeCampo,tab);
-
-                int nTam = strlen(valorCampo);
-
-                if (tipo == 'S') {
-                    nTam = tam;
-                }
-
-                e->valorCampo = (char *) malloc (sizeof(char) * (nTam+1));
-
-                if (e->valorCampo == NULL) {
-                    free(e);
-                    return ERRO_DE_ALOCACAO;
-                }
-
-                e->next = NULL;
-
-                int n = strlen(nomeCampo)+1;
-
-                /**
-                 * Verifica se o nome do campo ultrapassa o limite, se sim trunca
-                 */
-                if (n > TAMANHO_NOME_CAMPO) {
-                   n = TAMANHO_NOME_CAMPO;
-                   printf("WARNING: field name exceeded the size limit and was truncated.\n");
-                }
-
-                strncpylower(e->nomeCampo, nomeCampo, n-1);
-
-                //strncpy(e->nomeCampo, nomeCampo,n);
-
-                n = strlen(valorCampo);
-
-                if (n > tam && tipo == 'S') {
-                    n = tam;
-                    printf("WARNING: value of column \"%s\"exceeded the size limit and was truncated.\n", nomeCampo);
-                }
-
-                for(i=0; i < n; i++) e->valorCampo[i] = valorCampo[i];
-                e->valorCampo[i] = '\0';
-
-                //strncpy(e->valorCampo, valorCampo,n);
-                aux->next = e;
-                return c;
-            }
-        }
+    e->valorCampo = (char *)malloc(sizeof(char) * (nTam+1));
+    if (e->valorCampo == NULL) {
+        free(e);
+        return ERRO_DE_ALOCACAO;
+    }
+    n = strlen(valorCampo);
+    if (tipo == 'S' && n > tam) {
+        n = tam;
+        printf("WARNING: value of column \"%s\" exceeded the size limit and was truncated.\n", nomeCampo);
     }
 
-    if (e) free(e);
-    return ERRO_INSERIR_VALOR;
+    strncpy(e->valorCampo, valorCampo,n);
+    e->valorCampo[n] = '\0';
+
+    fim:
+        if (!c) return e;
+        column *aux = c;
+        while (aux->next) aux = aux->next;
+        aux->next = e;
+
+        return c;
 }
 //////
 /*------------------------------------------------------------------------------------------

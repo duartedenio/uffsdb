@@ -50,6 +50,16 @@ tp_table *leSchema (struct fs_objects );
 */
 int tamTupla(tp_table *, struct fs_objects);
 /*
+    Esta função calcula, usando o esquema e o dicionário de dados, o tamanho da tupla de uma
+    tabela, retornando o mesmo.
+
+    *esquema - Estrutura que contém o esquema da tabela (nome de campo, tipo de campo, etc)
+    *objeto  - Estrutura que contém informações sobre a tabela (nome da tabela, nome do arquivo da
+               tabela, etc)
+
+*/
+int tamTuplaSemByteControle(tp_table *, struct fs_objects);
+/*
     Esta função conta quantas tabelas já estão inseridas dentro do dicionario, para poder colocar
     um código válido para a próxima tabela. Retorna a quantidade exata de tabelas.
 */

@@ -36,14 +36,14 @@ int colocaTuplaBuffer(tp_buffer *buffer, int from, tp_table *campos, struct fs_o
 
 
 /*
-    Esta função recupera uma página do buffer e retorna a mesma em uma estrutura do tipo column
+    Esta função recupera uma página do buffer e retorna a mesma em uma estrutura do tipo tupla
     A estrutura column possui informações de como manipular os dados
     *buffer - Estrutura para armazenar tuplas na meméria
     *campos - Estrutura que armazena esquema da tabela para ler os dados do buffer
     *objeto - Estrutura que armazena dados sobre a tabela que está no buffer
     *page - Número da página a ser recuperada (0 a PAGES)
 */
-column * getPage(tp_buffer *buffer, tp_table *campos, struct fs_objects objeto, int page);
+tupla * getPage(tp_buffer *buffer, tp_table *campos, struct fs_objects objeto, int page);
 /*
     Esta função uma determinada tupla do buffer e retorna a mesma em uma estrutura do tipo column;
     A estrutura column possui informações de como manipular os dados
@@ -61,3 +61,5 @@ char *getTupla(tp_table *campos,struct fs_objects objeto, int from);
 void setTupla(tp_buffer *buffer,char *tupla, int tam, int pos);
 ////
 void cria_campo(int , int , char *, int );
+
+void addColumn(column **colList, column *c);

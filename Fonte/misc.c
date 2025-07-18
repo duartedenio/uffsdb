@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <readline/history.h>
+
 ////
 #ifndef FMACROS // garante que macros.h não seja reincluída
    #include "macros.h"
@@ -35,7 +37,7 @@ int drawline(tp_buffer *buffpoll, tp_table *s, struct fs_objects objeto, int p, 
     if (num_page > PAGES || p > SIZE) {
         return ERRO_DE_PARAMETRO;
     }
-    int *pos_ini, aux = (p * tamTupla(s,objeto)) , num_reg = objeto.qtdCampos;
+    int *pos_ini, aux = (p * tamTuplaSemByteControle(s,objeto)) , num_reg = objeto.qtdCampos;
     pos_ini = &aux;
     int count, pos_aux, bit_pos;
     union c_double cd;
@@ -98,6 +100,20 @@ int drawline(tp_buffer *buffpoll, tp_table *s, struct fs_objects objeto, int p, 
     return SUCCESS;
 }
 ////
+void printHistory(){
+    HIST_ENTRY **comands_list = history_list();
+    if (!comands_list) return;
+        
+    for (int i = 0; comands_list[i]; i++) {
+        printf("%d    %s\n", i, comands_list[i]->line);
+    }
+}
+
+void deleteHistory(){
+    clear_history();
+    remove("data/hisroty.txt");
+}
+////
 void contr() {
 	printf("Who is helping to developing uffsdb:\n");
 	printf("\t Gabrielle Almeida de Souza e Lais Borin (14-1)\n");
@@ -113,6 +129,7 @@ void help() {
 	printf("Digite:");
 	printf("\t\\c NOME\t\t- Para conectar-se no banco NAME\n");
 	printf("\t\\q\t\t- Para sair do programa\n");
+    printf("\t\\help\t\t- Para ter mais informações sobre o que está implementado\n");
 	printf("----------------- Comandos válidos quando conectado -----------------\n");
 	printf("Digite:");
 	printf("\t\\d\t\t- Para listar as tabelas do banco\n");
@@ -121,19 +138,61 @@ void help() {
 	printf("------------------------------------------------ Sintaxe SQL ------------------------------------------------\n");
 	printf("CREATE DATABASE NOME;\t\t\t\t- Cria um novo banco de dados\n");
 	printf("\nDROP DATABASE NOME;\t\t\t\t- Exclui um banco de dados\n");
-	printf("\nCREATE TABLE NOME (\t\t\t\t- Cria uma nova tabela. Onde 'type' deve\n");
-	printf("\tcolumn1 type [attribute][,\t\t  pertencer à {int, integer, double, varchar(SIZE), char}.\n");
-	printf("\t...][,\t\t\t\t\t  E 'attribute' pode ser 'PRIMARY KEY', caso seja PK,\n");
-	printf("\tcolumnN type [attribute]]\t\t  ou 'REFERENCES NOME(COLUMN)', indicando a tabela\n");
-	printf(");\t\t\t\t\t\t  e a coluna que está referenciando (FK).\n");
-	printf("\nDROP TABLE NOME;\t\t\t\t- Exclui uma tabela do banco de dados\n");
-	printf("\nINSERT INTO NOME [(column1, ..., columnN)]\t- Insere um novo registro na tabela, padrão SQL mas só\n");
-	printf("VALUES (1, 'text value', 1.11);\t\t\t  aceita um conjunto de valores. Se as colunas não forem\n");
-	printf("\t\t\t\t\t\t  especificadas, a quantidade de valores deve\n");
-	printf("\t\t\t\t\t\t  corresponder à quantidade de colunas da tabela.\n");
-	printf("\nSELECT * FROM NOME;\t\t\t\t- Não é a implementação padrão do SELECT mas serve para\n");
-	printf("\t\t\t\t\t\t  imprmir todos os valores de uma tabela\n");
-  printf("\nCREATE INDEX ON tabela (atributo);\t\t- Cria um índice B+ para o atributo especificado.\n");
+	printf("\nCREATE TABLE NOME (\t\t\t\t- O comando CREATE TABLE define uma nova tabela com as seguintes características:\n");
+	printf("\tcolumn1 type [attribute][,\t\t  1. Um tipo de dado especificado por 'type', que pode ser um dos seguintes valores:\n");
+	printf("\t...][,\t\t\t\t\t     {int, integer, double, varchar(SIZE), char}.\n");
+    printf("\tcolumnN type [attribute]]\t\t  2. Um ou mais atributos opcionais, representados por 'attribute', que podem incluir:\n");
+	printf(");\t\t\t\t\t\t     • PRIMARY KEY: Define a coluna como chave primária (PK)\n");
+	printf("\t\t\t\t\t\t     • REFERENCES NOME(COLUMN): Define a coluna como uma chave estrangeira (FK),\n");
+    printf("\t\t\t\t\t\t     especificando a tabela (NOME) e a coluna (COLUMN) que está sendo referenciada.\n");
+    printf("\t\t\t\t\t\t  Não é possível definir restrições de integridade (como not null, unique ou\n");
+	printf("\t\t\t\t\t\t  constraint para pk).\n");
+    printf("\nDROP TABLE NOME;\t\t\t\t- Exclui uma tabela do banco de dados\n");
+	printf("\nINSERT INTO NOME [(column1, ..., columnN)]\t- Insere um novo registro na tabela seguindo o padrão SQL,\n");
+	printf("VALUES (1, 'text value', 1.11);\t\t\t  mas aceita apenas um único conjunto de valores por vez. Caso as\n");
+	printf("\t\t\t\t\t\t  colunas não sejam explicitamente especificadas, o número de valores fornecidos deve\n");
+	printf("\t\t\t\t\t\t  corresponder exatamente ao número de colunas da tabela.\n");
+    printf("\nSELECT * FROM NOME;\t\t\t\t- Essa não é a implementação padrão do comando SELECT, mas permite\n");
+	printf("\t\t\t\t\t\t  exibir todos os valores de uma tabela. No entanto, não é\n");
+    printf("\t\t\t\t\t\t  possível filtrar os dados por uma coluna específica.\n");
+    printf("\nCREATE INDEX ON tabela (atributo);\t\t- Cria um índice B+ para o atributo especificado.\n");
+    printf("\t\t\t\t\t\t  Não é possível fazer DROP deste índice.\n");
+}
+////
+void implement() {
+	printf("\nComandos SQL implementados no UFFSDB\n");
+	printf("----------------------------------------------------\n");
+	printf("CREATE DATABASE\n");
+    printf("CREATE TABLE\n");
+    printf("CREATE INDEX\n");
+	printf("INSERT\n");
+	printf("SELECT\n");
+	printf("DROP DATABASE\n");
+	printf("DROP TABLE\n");
+    printf("Sintaxe dos itens acima podem ser visualizadas através do comando 'help'\n");
+	printf("----------------------------------------------------\n");
+	printf("\nComandos SQL não implementados no UFFSDB\n");
+    printf("----------------------------------------------------\n");
+    printf("DELETE\n");
+    printf("UPDATE\n");
+    printf("ALTER TABLE\n");
+    printf("DROP INDEX\n");
+    printf("NOT NULL\n");
+    printf("JOIN\n");
+    printf("GROUP BY\n");
+    printf("HAVING\n");
+    printf("ORDER BY\n");
+    printf("LIMIT\n");
+    printf("DISTINCT\n");
+    printf("IN\n");
+    printf("EXISTS\n");
+    printf("BETWEEN\n");
+    printf("COUNT\n");
+    printf("MAX/MIN\n");
+    printf("AVG/SUM\n");
+    printf("CREATE VIEW\n");
+    printf("CREATE PROCEDURE\n");
+    printf("Subconsultas\n");
 }
 ////
 int objcmp(char *obj, char *str) {
@@ -221,7 +280,12 @@ double get_inteiro(char v[]) {
 }
 
 double convertD(char u[]) {
-    return get_inteiro(u)+get_decimal(u);
+    int multiplicador = 1;
+    if(u[0] == '-'){
+        multiplicador = -1;
+        u++;
+    }
+    return get_inteiro(u)+get_decimal(u)*multiplicador;
     //Soma inteiro com decimal.ss
 }
 ///

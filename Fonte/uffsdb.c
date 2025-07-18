@@ -26,7 +26,7 @@ db_connected connected;
 
 int main(){
     dbInit(NULL);
-    printf("uffsdb (16.2).\nType \"help\" for help.\n\n");
+    printf("uffsdb (16.2).\nType \"help\" for help or \"implement\" for seeing what is or not is implemented in this project.\n\n");
     interface();
     return 0;
 }

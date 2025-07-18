@@ -1,5 +1,4 @@
 #define FSQLCOMMANDS 1   // flag para garantir a não reinclusão
-
 #ifndef FMACROS // garante que macros.h não seja reincluída
    #include "macros.h"
 #endif
@@ -29,7 +28,7 @@ int typesCompatible(char , char);
     *nome - Nome da tabela que vai ser inserido os valores da estrutura *c.
     *c - Estrutura com o valores que vão ser inseridos na tabela *nome.
 */
-int finalizaInsert(char *, column *);
+int finalizaInsert(char *, column *, int tamTupla);
 /* ----------------------------------------------------------------------------------------------
     Objetivo:   Utilizada para impressão de tabelas.
     Parametros: Nome da tabela (char).
@@ -103,22 +102,23 @@ void createTable(rc_insert *);
 
 /*
   Objetivo: Verificar se a projeção feita no insert é válida
-  Parametros: Uma lista com a projeção, um ponteiro
-              para as colunas da tabela e um inteiro
-              dizendo a quantidade de colunas.
+  Parametros: Uma lista com a projeção, 
+              um ponteiro para a esquema da tabela,
+              um inteiro dizendo a quantidade de colunas
+              e um ponteiro para uma lista char.
   Retorno: retorna 1 se a projecao é válida
           returna 0 caso contrário.
           no vetor char *, cada posicao i
           possui 0 se a coluna i pertence a projecao
           possui 1 caso contrário.
 */
-int validaProj(Lista *,column *,int,char *);
+int validaProj(Lista *,tp_table *,int,int *);
 
 /*
   Verifica se na clausula where esta sendo utilizado
   alguma coluna que não é da tabela.
 */
-int validaColsWhere(Lista *tok,column *colunas,int qtdColunas);
+int validaColsWhere(Lista *tok,tp_table *colunas,int qtdColunas);
 
 /*
   Memsma coisa que novoResWhere somente para string.

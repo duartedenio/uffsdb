@@ -49,12 +49,14 @@ int yywrap() {
         LIST_TABLES LIST_TABLE  CONNECT     HELP        LIST_DBASES
         CLEAR       CONTR       WHERE       OPERADOR    RELACIONAL
         LOGICO      ASTERISCO   SINAL       FECHA_P     ABRE_P
-        STRING      INDEX       ON;
+
+        STRING      INDEX       ON          IMPLEMENT;
 %%
 start: insert | select | create_table | create_database | drop_table | drop_database
      | table_attr | list_tables | connection | exit_program | semicolon {GLOBAL_PARSER.consoleFlag = 1; return 0;}
-     | help_pls | list_databases | clear | contributors | create_index
-     | qualquer_coisa | /*epsilon*/;
+     | help_pls | list_databases | clear | contributors | create_index | history_pls | delete_history_pls
+     | qualquer_coisa | implement | /*epsilon*/;
+
 
 /*--------------------------------------------------*/
 /**************** GENERAL FUNCTIONS *****************/
@@ -66,7 +68,7 @@ connection: CONNECT OBJECT {connect(*yytext); GLOBAL_PARSER.consoleFlag = 1; ret
 qualquer_coisa: OBJECT {GLOBAL_PARSER.consoleFlag = 1; GLOBAL_PARSER.noerror = 0; return 0;};
 
 /* EXIT */
-exit_program: QUIT {exit(0);};
+exit_program: QUIT {quit(0);};
 
 clear: CLEAR {clear(); GLOBAL_PARSER.consoleFlag = 1; return 0;};
 
@@ -103,6 +105,15 @@ list_databases: LIST_DBASES {
 
 /* HELP */
 help_pls: HELP {help(); GLOBAL_PARSER.consoleFlag = 1; return 0;}
+
+
+/* IMPLEMENT */
+implement: IMPLEMENT {implement(); GLOBAL_PARSER.consoleFlag = 1; return 0;}
+
+/* HELP */
+history_pls: HISTORY {printHistory(); GLOBAL_PARSER.consoleFlag = 1; return 0;};
+
+delete_history_pls: DELETE_HISTORY {deleteHistory(); GLOBAL_PARSER.consoleFlag = 1; return 0;};
 
 /* CONTRIBUTORS */
 contributors: CONTR {contr(); GLOBAL_PARSER.consoleFlag = 1; return 0;}
