@@ -29,11 +29,6 @@ typedef struct column{ // Estrutura utilizada para inserir em uma tabela, exclui
     struct column *next;                // Encadeamento para o próximo campo.
 }column;
 
-typedef struct tupla {
-    unsigned int endereco;
-    column *column;
-}tupla;
-
 typedef struct table{ // Estrutura utilizada para criar uma tabela.
     char nome[TAMANHO_NOME_TABELA]; // Nome da tabela.
     tp_table *esquema;              // Esquema de campos da tabela.

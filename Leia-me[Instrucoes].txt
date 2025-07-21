@@ -1,215 +1,106 @@
-##############LEIA-ME PARTE 6 #############################################################################################################
+########## LEIA-ME PARTE 1 ##############################################################################################################
 
-=> 16 de fevereiro de 2025 <=
-
-Universidade Federal da Fronteira Sul – UFFS
-Curso: Ciência da Computação
-Componente Curricular: Banco de Dados II
-Professor: Dr. Denio Duarte
-Alunos: João Gomes e Valéria Faccin
-=============================================================================================================================================
-
-Foi implementado uma navegação entre histórico de comandos.
-	seta direcional para cima volta um comando e para baixo desce,
-	dá para navegar na mesma linha com as setas laterais
-
-Implementado um cabeçalho para cada tupla de 1 + n bytes (n sendo o número de colunas)
-	o primeiro byte indica se a dupla foi deletada ou não (1 para deletada)
-	os n bytes seguintes indicam se a coluna é nulla, seguindo a ordem de criação da tabela
-
-
-
-##############LEIA-ME PARTE 5 #############################################################################################################
-
-=> 15 de fevereiro de 2017 <=
+=> 15 Julho 2014 <=
 
 Universidade Federal da Fronteira Sul – UFFS
 Curso: Ciência da Computação
 Componente Curricular: Banco de Dados II
 Professor: Dr. Denio Duarte
-Alunos: Jefferson Coppini, Jonathan Rauber, Nicholas Brutti, Ricardo Müller
-=============================================================================================================================================
+Alunos: Gabrielle Almeida de Souza e Lais Borin
 
-Foi implementada a verificação de índices PK e FK utilizando árvore B+.
-Adicionado comando explícito CREATE INDEX:
+Introdução
+	Trabalho desenvolvido para o componente curricular de Banco de Dados II, sua finalidade é implementar a criação de tabelas, bem como a inclusão de tuplas em disco e remoção de tuplas do buffer complementando o que ja havia sido feito anteriormente.
 
-	CREATE INDEX ON tabela (atributo);
+Sobre o dicionário de dados e o esquema:
+	Por definição, o dicionário de dados está no aquivo fs_object.dat e o esquema em fs_schema.dat, os mesmos serão criados no diretório raiz da pasta dos fontes.
+	São carregados na memória pelas funçõe leObjeto(nTabela) e leSchema(objeto) e tem a seguinte estrutura:
 
-Além da implementação do comando CREATE INDEX, os comandos DROP TABLE, CREATE TABLE e INSERT tiveram que ser alterados para
-suporte ao índice B+ implementado.
-	Updates:
-	->	DROP TABLE: quando uma tabela é deletada todos os índices B+ associados à ela são removidos também.
-	->	CREATE TABLE: quando uma tabela é criada e ela possui um atributo com chave primária, é construído automaticamente um índice B+ para a PK.
-	->	INSERT: verifica chave primária através do índice B+. Também verifica com o índice B+ as chaves estrangeiras, caso o atributo apontado em outra tabela
-							possui índice associado.
+	struct fs_objects { // Estrutura usada para carregar fs_object.dat
+		char nome[20];
+		int cod;
+		char nArquivo[20];
+		int qtdCampos;
+	};
 
-A ordem da árvore B+ é dinâmica (o cálculo depende do número de tuplas armazenados na tabela). A árvore possuirá no máximo 5 níveis.
+	typedef struct tp_table{ // Estrutura usada para carregar fs_schema.dat
+		char nome[TAMANHO_NOME_CAMPO];
+		char tipo;
+		int tam;
+		struct tp_table *next;
+	}tp_table;
 
-Como é armazenado o índice B+:
-	Ex.: Cria-se uma tabela ALUNO com o atributo Matricula como chave primária. É gerado o arquivo de índices denso no mesmo diretório
-	da tabela com o nome de arquivo 'alunomatricula.dat'.
-
-	Cada chave no arquivo de índice é gravada da seguinte forma:
-		valor(string alocada dinamicamente) + $ + endereço(int, offset da tupla no arquivo de dados) + #(delimitador de tupla) + ... + &(fim do indice denso) + número de tuplas na tabela
-
-	A construção da árvore b+ é feita através do método Bulking Load, ou seja, carregamento em massa.
-
-
-
-##############LEIA-ME PARTE 4 #############################################################################################################
-
-=> 15 de junho de 2015 <=
-
-Universidade Federal da Fronteira Sul – UFFS
-Curso: Ciência da Computação
-Componente Curricular: Banco de Dados II
-Professor: Dr. Denio Duarte
-Alunos: Igor Beilner, Eliton Traverssini, Régis T. Feyh.
-=============================================================================================================================================
-
-O reconhecedor de comandos SQL foi implementado utilizando yacc e lex. Portanto, para aterá-los, basta editar os arquivos .y e .l que se
-econtram em /Fonte/interface/. Toda vez que for alterados esses arquivos, é necessário gerar novamente os arquivos do reconhecedor.
-Para isso, basta executar o comando 'make' no bash quando estiver na pasta onde estão os arquivos.
-
-Para compilar o projeto inteiro, basta executar o comando 'make' na pasta /Fonte/. Isso irá gerar o executável 'Ibetres'.
-
-Ao executar, o programa conecta-se com o banco "ibetres" por default,
-Para conectar-se a outro banco, utiliza-se o comando:
-	\c <nomedo banco>.
-
-O interpretador reconhece os comandos SQL abaixo:
-	CREATE DATABASE <NomeBanco>;
-	CREATE TABLE <NomeTabela>(
-		<nomeCampo> <tipoCampo>[primary key | references <nomeTabela1>(<nomeCampoPK>)]
-		[, <nomeCampo> <tipoCampo>[primary key | references <nomeTabela1>(<nomeCampoPK>)]
-		[...]
-	);
-	INSERT INTO <NomeTabela> (<coluna1>,...,<colunaN>) VALUES (<valorNum>, '<valorStr>',...);
-	INSERT INTO <NomeTabela> VALUES (<valorNum>, '<valorStr>',...); // Desde que o número de valores corresponda ao número de colunas
-	SELECT * FROM <NomeTabela>;
-	DROP DATABASE <NomeBanco>;
-	DROP TABLE <NomeTabela>;
-
-Além disso, interpreta os comandos:
-
-	help				// retorna um menu de ajuda
-	\c <NomeBanco> 		// estabelece conexão com o banco de dados <NomeBanco>
-	\l 					// retorna uma lista com os bancos de dados criados no SGBD
-	\d 					// retorna uma lista com as tabelas existentes no banco de dados corrente
-	\t <NomeTabela>		// retorna uma lista com o esquema de uma tabela
-	\q 					// sai do shell do SGBD
+	O arquivo fs_object.dat organiza-se da seguinte forma:
+		20B que representam o nome da tabela;
+		1B que representam o código da tabela;
+		20B que representa o nome do arquivo onde estão as tuplas da tabela;
+		4B que representa a quantidade de campos da tabela.
 
 
-A ordem das colunas especificadas não precisa ser na mesma ordem da criação e não é necessário informar todas. Quando o usuário
-não especificar a coluna o SGBD colocará um valor nulo, de acordo com o tipo de dado.
+	O arquivo fs_schema.dat organiza-se da seguinte forma:
+		4B que representam o codigo da tabela; (Código que representa a tabela em fs_objects.dat)
+		40B que representam o nome do campo;
+		1B que representa o tipo do campo;
+		4B que representa o tamanho do campo.
 
-Os comandos SQL e os objetos das relações (i.e. <NomeTabelas>, <NomeCampos> ...) NÃO são case-sensitive.
-	ex:
-		<TABELA> e <tabela> se referem a mesma relação.
-		<INSERT> e <insert> se referem ao mesmo comando SQL.
+	Caso os arquivos fs_object.dat e fs_schema.dat não existam ainda, quando chamada, a função finalizaTabela(...) criará os mesmos adicionando os dados da tabela criada.
 
+Sobre a criação e inserção em tabelas:
+	Para criar uma tabela é necessário uma estrutura do tipo 'table'. Esta estrutura armazenará os dados da tabela a ser criada.
+	Após a criação de uma istância de 'table' é necessário iniciá-la com o nome da tabla a ser criada usando a função iniciaTabela(nomeTabela):
 
+		table *t = NULL;
+		t = iniciaTabela("Pessoa");
 
-##############LEIA-ME PARTE 3 #############################################################################################################
+	A partir da iniciação da tabela, pode-se adicionar os campos utilizando a função adicionaCampo(t, nomeCampo, tipoCampo, tamanhoCampo):
 
-=> 20 dezembro 2014 <=
+		t = adicionaCampo(t, "Nome", 'S', 20); // Cria um campo de nome 'Nome' do tipo string e de tamanho 20
+		t = adicionaCampo(t, "Idade", 'I', 4); // Cria um campo de nome 'Idade' do tipo inteiro e de tamanho 4
 
-Universidade Federal da Fronteira Sul – UFFS
-Curso: Ciência da Computação
-Componente Curricular: Banco de Dados II
-Professor: Dr. Denio Duarte
-Alunos: Natan J. Mai, Ricardo Zanuzzo, Rogerio T. Schmidt
-=============================================================================================================================================
+	Agora, para a tabela ser finalmente adicionada ao dicionário de dados e ao esquema, chama-se a função finalizaTabela(t);
 
-Introdução:
+	Criada a tabela, pode-se inserir os dados.
+	Quanto da inserção, é necessário criar uma estrutura do tipo 'column' que criará uma lista encadeada de valores a serem adicionados a tabela.
+	Para adicionar uma tupla na tabela, é preciso inserir valor por valor de cada campo chamando a função insereValor(c, nomeCampo, valorCampo):
 
-- Ao criar uma tabela, ter a possibilidade de definir chaves primárias e estrangeiras.
-- Fazer uma funcionalidade para abrir uma tabela para trabalhar (uma função que englobe leObjeto e leSchema)
-- Fazer uma funcionalidade que exclua uma tabela (um drop table). A tabela deve ser excluída do disco e do dicionário.
-- Atualizar o txt com as instruções e comentar o código para facilitar as futuras manutenções.
+		column *c = NULL;
+		c = insereValor(c, "Nome", "Joana");
+		c = insereValor(c, "Idade", "40");
 
-A definição de chave primária ou chave estrangeira de um atributo é representado por um "flag" que é passado por parametro na criação da tabela. Exemplo abaixo
+	OBS: A inserção dos dados deve ocorrer na sequência de criação de campo, sendo que não é possível realizar a inserção incompleta de uma tupla
 
-- NPK (Sem chave);
-- PK (Chave primária);
-- FK (Chave estrangeira)
+	Assim, com os dados já adicionados na tabela, basta chamar a função finalizaInsert(nomeTabela, c) para gravar as tuplas no arquivo nomeTabela.dat, que armazena os dados referente a esta tabela:
 
-Da criação das tabelas:
-	iniciaTabela("tabela");
-	adicionaCampo(tabela, "atrib11" , 'I', (sizeof(int))	,PK	," "		," ");
-	adicionaCampo(tabela, "atrib12" , 'I', (sizeof(int))	,NPK	," "		," ");
-	adicionaCampo(tabela, "atrib13" , 'S', 10		,NPK	," "		," ");
-	adicionaCampo(tabela, "atrib14" , 'D', (sizeof(double))	,NPK	," "		," ");
-	adicionaCampo(tabela, "atrib11" , 'I', (sizeof(int))	,FK	,"tabRefer"	,"atribRefer");
-	finalizaTabela(tabela);
+		finalizaInsert("Pessoa", c);
 
-Foi adicionado mais um parâmetro, que é passado para a função adicionaCampo. Trata-se do "flag" que indica o tipo de atributo.
-No caso de se tratar de uma chave estrangeira, é necessário apontar a tabela referenciada (tabRefer) e o atributo referenciado (atribRefer).
+Sobre inserir uma tupla no buffer:
+	Para adicionar uma tupla no buffer, realize o seguinte tendo já o bufferpoll, o esquema e o objeto devidamete inicializados:
 
-Obsevação Inserção: Se tabela tiver chave estrangeira FK, o primeiro atributo deve ser PK.
-
-Da inserção de Tuplas:
-	insereValor(colunas, "nomeAtrib1", "value1");
-	insereValor(colunas, "nomeAtrib2", "value2");
-	erro = finalizaInsert("tabela", colunas);
-
--> Variável colunas do tipo column,
--> Nome do atributo "nomeAtrib" a ser adicionado o valor,
--> Valor adicionado,
+		colocaTuplaBuffer(bufferpoll, 0, esquema, objeto); // Onde '0' é tupla a ser adicionada, relativa a ordem de inserção em sua tabela
 
 
-Dos retornos - Tratamento de PK e FK:
-	ERRO_CHAVE_PRIMARIA -> -14
-	ERRO_CHAVE_ESTRANGEIRA -> -15
-	ERRO_CRIACAO_TABELA -> -16
+Sobre excluir uma tupla do buffer e recuperar uma página do buffer:
+	Para excluir uma tupla e obter a mesma para impressão, basta chamar a função com o buffer,  esquema, a página a excluir uma tupla e a tupla a ser excluida:
 
-Estes podem ser tratados na main.
+		column *tuplaE = excluirTuplaBuffer(buffer, esquema, objeto, 0, 2); // '2' é a posição da tupla relativa a página do buffer
 
-É possível adicionar apenas UM atributo como chave PK, ou seja, não é tratada a forma de chave composta.
+	Para recuperar uma página do buffer, bem como obter esta página, basta chamar a função com o buffer, o esquema e o número da página a ser recuperada, como segue:
 
-Foi alterado a struct tp_table para podermos trabalhar com as chaves:
+		column *pagina = getPage(bufferpoll, esquema, objeto, 0);
 
-typedef struct tp_table{ // Estrutura usada para carregar fs_schema.dat
-	char nome[TAMANHO_NOME_CAMPO];		// Nome do Campo.
-	char tipo;				// Tipo do Campo.
-	int tam;				// Tamanho do Campo.
-	int chave;				// Tipo da chave
-	char tabelaApt[TAMANHO_NOME_TABELA]; 	//Nome da Tabela Apontada
-	char attApt[TAMANHO_NOME_CAMPO];	//Nome do Atributo Apontado
-	struct tp_table *next;			// Encadeamento para o próximo campo.
-}tp_table;
-
-
-Foi também criado as seguintes funções:
--> IniciaAtributos,
--> ExisteAtributo,
--> VerificaChavePK,
--> VerificaChaveFK,
--> ExcluirArquivo,
--> AbreTabela.
-
-Juntamente com os arquivos do trabalho, foi criado também o "exemploMain.c". Trata-se de um modelo (exemplo) de uma maneira
-de criar a main(). Nessa exemplo de main() é necessário se atentar ao seguinte:
--int nrTabelas;	->deve ser setado para a quantidades de tabelas a ser criadas;
-
--   nTabela[0]  = existeArquivo("tabela1.dat"); 	// -> deve ser colocado aqui os nomes das tabelas
-    nTabela[1]  = existeArquivo("tabela2.dat");
-    nTabela[2]  = existeArquivo("tabela3.dat");
-
-- ao final, foi chamado a função imprime("tabela1") que realiza a impressão das tabelas.
-
-Também pode ser utilizado a função excluirArquivo. A mesma apaga a fisicamente tabela e os registros do dicionário de dados
+	A estrutura do tipo 'column' foi criada com o objetivo de armazenar os dados das tabelas, bem como para promover possíveis impressões de dados.
 
 
 
 Da compilação:
 
 	$ gcc *.c -o prog -Wall
-	$ ./prog
+	$ ./prog <Nome da Tabela>
+
 
 
 
 ########## LEIA-ME PARTE 2 ##############################################################################################################
+
 
 
 => 16 outubro 2014 <=
@@ -310,107 +201,6 @@ Da compilação:
 
 
 
-########## LEIA-ME PARTE 1 ##############################################################################################################
-
-=> 15 Julho 2014 <=
-
-Universidade Federal da Fronteira Sul – UFFS
-Curso: Ciência da Computação
-Componente Curricular: Banco de Dados II
-Professor: Dr. Denio Duarte
-Alunos: Gabrielle Almeida de Souza e Lais Borin
-
-Introdução
-	Trabalho desenvolvido para o componente curricular de Banco de Dados II, sua finalidade é implementar a criação de tabelas, bem como a inclusão de tuplas em disco e remoção de tuplas do buffer complementando o que ja havia sido feito anteriormente.
-
-Sobre o dicionário de dados e o esquema:
-	Por definição, o dicionário de dados está no aquivo fs_object.dat e o esquema em fs_schema.dat, os mesmos serão criados no diretório raiz da pasta dos fontes.
-	São carregados na memória pelas funçõe leObjeto(nTabela) e leSchema(objeto) e tem a seguinte estrutura:
-
-	struct fs_objects { // Estrutura usada para carregar fs_object.dat
-		char nome[20];
-		int cod;
-		char nArquivo[20];
-		int qtdCampos;
-	};
-
-	typedef struct tp_table{ // Estrutura usada para carregar fs_schema.dat
-		char nome[TAMANHO_NOME_CAMPO];
-		char tipo;
-		int tam;
-		struct tp_table *next;
-	}tp_table;
-
-	O arquivo fs_object.dat organiza-se da seguinte forma:
-		20B que representam o nome da tabela;
-		1B que representam o código da tabela;
-		20B que representa o nome do arquivo onde estão as tuplas da tabela;
-		4B que representa a quantidade de campos da tabela.
-
-
-	O arquivo fs_schema.dat organiza-se da seguinte forma:
-		4B que representam o codigo da tabela; (Código que representa a tabela em fs_objects.dat)
-		40B que representam o nome do campo;
-		1B que representa o tipo do campo;
-		4B que representa o tamanho do campo.
-
-	Caso os arquivos fs_object.dat e fs_schema.dat não existam ainda, quando chamada, a função finalizaTabela(...) criará os mesmos adicionando os dados da tabela criada.
-
-Sobre a criação e inserção em tabelas:
-	Para criar uma tabela é necessário uma estrutura do tipo 'table'. Esta estrutura armazenará os dados da tabela a ser criada.
-	Após a criação de uma istância de 'table' é necessário iniciá-la com o nome da tabla a ser criada usando a função iniciaTabela(nomeTabela):
-
-		table *t = NULL;
-		t = iniciaTabela("Pessoa");
-
-	A partir da iniciação da tabela, pode-se adicionar os campos utilizando a função adicionaCampo(t, nomeCampo, tipoCampo, tamanhoCampo):
-
-		t = adicionaCampo(t, "Nome", 'S', 20); // Cria um campo de nome 'Nome' do tipo string e de tamanho 20
-		t = adicionaCampo(t, "Idade", 'I', 4); // Cria um campo de nome 'Idade' do tipo inteiro e de tamanho 4
-
-	Agora, para a tabela ser finalmente adicionada ao dicionário de dados e ao esquema, chama-se a função finalizaTabela(t);
-
-	Criada a tabela, pode-se inserir os dados.
-	Quanto da inserção, é necessário criar uma estrutura do tipo 'column' que criará uma lista encadeada de valores a serem adicionados a tabela.
-	Para adicionar uma tupla na tabela, é preciso inserir valor por valor de cada campo chamando a função insereValor(c, nomeCampo, valorCampo):
-
-		column *c = NULL;
-		c = insereValor(c, "Nome", "Joana");
-		c = insereValor(c, "Idade", "40");
-
-	OBS: A inserção dos dados deve ocorrer na sequência de criação de campo, sendo que não é possível realizar a inserção incompleta de uma tupla
-
-	Assim, com os dados já adicionados na tabela, basta chamar a função finalizaInsert(nomeTabela, c) para gravar as tuplas no arquivo nomeTabela.dat, que armazena os dados referente a esta tabela:
-
-		finalizaInsert("Pessoa", c);
-
-Sobre inserir uma tupla no buffer:
-	Para adicionar uma tupla no buffer, realize o seguinte tendo já o bufferpoll, o esquema e o objeto devidamete inicializados:
-
-		colocaTuplaBuffer(bufferpoll, 0, esquema, objeto); // Onde '0' é tupla a ser adicionada, relativa a ordem de inserção em sua tabela
-
-
-Sobre excluir uma tupla do buffer e recuperar uma página do buffer:
-	Para excluir uma tupla e obter a mesma para impressão, basta chamar a função com o buffer,  esquema, a página a excluir uma tupla e a tupla a ser excluida:
-
-		column *tuplaE = excluirTuplaBuffer(buffer, esquema, objeto, 0, 2); // '2' é a posição da tupla relativa a página do buffer
-
-	Para recuperar uma página do buffer, bem como obter esta página, basta chamar a função com o buffer, o esquema e o número da página a ser recuperada, como segue:
-
-		column *pagina = getPage(bufferpoll, esquema, objeto, 0);
-
-	A estrutura do tipo 'column' foi criada com o objetivo de armazenar os dados das tabelas, bem como para promover possíveis impressões de dados.
-
-
-
-Da compilação:
-
-	$ gcc *.c -o prog -Wall
-
-	$ ./prog <Nome da Tabela>
-
-
-
 ##############LEIA-ME PARTE 3 #############################################################################################################
 
 => 20 dezembro 2014 <=
@@ -545,7 +335,6 @@ O interpretador reconhece os comandos SQL abaixo:
 Além disso, interpreta os comandos:
 
 	help				// retorna um menu de ajuda
-	implement		// retorna o que já foi implementado e o que ainda não foi implementado
 	\c <NomeBanco> 		// estabelece conexão com o banco de dados <NomeBanco>
 	\l 					// retorna uma lista com os bancos de dados criados no SGBD
 	\d 					// retorna uma lista com as tabelas existentes no banco de dados corrente
@@ -595,4 +384,3 @@ Como é armazenado o índice B+:
 		valor(string alocada dinamicamente) + $ + endereço(int, offset da tupla no arquivo de dados) + #(delimitador de tupla) + ... + &(fim do indice denso) + número de tuplas na tabela
 
 	A construção da árvore b+ é feita através do método Bulking Load, ou seja, carregamento em massa.
-

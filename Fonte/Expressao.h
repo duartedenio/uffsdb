@@ -10,7 +10,6 @@
 #define OBJETO 8
 #define VALUE_NUMBER 9
 #define BOOLEANO 10
-#define NULLA 11
 
 char precedArit(int id);
 int operador(int id);

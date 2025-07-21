@@ -7,7 +7,6 @@
 int cabecalho(tp_table *, int );
 int drawline(tp_buffer *, tp_table *, struct fs_objects, int , int);
 void help();
-void implement();
 void contr();
 int objcmp(char *, char *);
 void strcpylower(char *, char *);
@@ -32,13 +31,3 @@ double get_inteiro(char []);
 double convertD(char c[]);
 
 void clear();
-
-/*
-* printa o histórico de comandos
-*/
-void printHistory();
-
-/*
-* limpa o histórico de comandos
-*/
-void deleteHistory();

@@ -2,9 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include <readline/readline.h>
-#include <readline/history.h>
-
 #ifndef FMACROS
    #include "../macros.h"
 #endif
@@ -57,11 +54,6 @@ void connect(char *nome) {
 void invalidCommand(char *command) {
     printf("ERROR: Invalid command '%s'. Type \"help\" for help.\n", command);
 }
-
-void quit(int flag){
-    write_history("data/history.txt");
-    exit(flag);
-};
 
 void notConnected() {
     printf("ERROR: you are not connected to any database.\n");
@@ -266,28 +258,22 @@ void setMode(char mode) {
 
 int interface() {
     pthread_t pth;
+
     pthread_create(&pth, NULL, (void*)clearGlobalStructs, NULL);
     pthread_join(pth, NULL);
-
-    char prompt[LEN_DB_NAME + 4]; // 3 para "=# " +1 para \0
     Lista *resultado;
     connect("uffsdb"); // conecta automaticamente no banco padrão
     SELECT.tok = SELECT.proj = NULL;
-    historyInit();
     while(1){
         if (!connected.conn_active) {
-            snprintf(prompt, 3, "> ");
+            printf(">");
         } else {
-            snprintf(prompt, sizeof(prompt), "%s=# ", connected.db_name);
+            printf("%s=# ", connected.db_name);
         }
-        fflush(stdout);
-        char *input = readline(prompt); 
-        if(!input) break;
-        
-        if(!(*input)) continue;
-        getComando(input);
-        free(input);
-        
+
+        pthread_create(&pth, NULL, (void*)yyparse, &GLOBAL_PARSER);
+        pthread_join(pth, NULL);
+
         if (GLOBAL_PARSER.noerror) {
             if (GLOBAL_PARSER.mode != 0) {
                 if (!connected.conn_active) {
@@ -304,8 +290,8 @@ int interface() {
                         case OP_SELECT:
                             resultado = op_select(&SELECT);
                             if(resultado){
-                            printConsulta(SELECT.proj, resultado);
-                            resultado = NULL;
+                              printConsulta(SELECT.proj,resultado);
+                              resultado = NULL;
                             }
                             break;
                         case OP_CREATE_TABLE:
@@ -376,7 +362,6 @@ int interface() {
             pthread_create(&pth, NULL, (void*)clearGlobalStructs, NULL);
             pthread_join(pth, NULL);
         }
-    
     }
     return 0;
 }
