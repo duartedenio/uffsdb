@@ -33,6 +33,10 @@ double convertD(char c[]);
 
 void clear();
 
+
+//verifica e remove zeros a esquerda da variavel campo, se campo tiver apenas um zero, nada acontece. 
+void remove_zeros_on_left(char *campo);
+
 /*
 * printa o histórico de comandos
 */
@@ -42,3 +46,4 @@ void printHistory();
 * limpa o histórico de comandos
 */
 void deleteHistory();
+
